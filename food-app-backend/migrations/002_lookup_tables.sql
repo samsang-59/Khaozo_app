@@ -68,8 +68,60 @@ INSERT INTO config_settings (key, value, description) VALUES
   ('summary_refresh_every', '5', 'New text reviews that trigger an AI summary refresh'),
   ('group_expiry_hours', '4', 'Live group session lifetime in Redis');
 
--- CATALOG ROWS (cuisines, dish_categories, main_ingredients):
--- filled in from plans/08_dish_catalog_draft.md once the review is done.
+-- Catalog rows (source of truth: plans/08_dish_catalog.md, reviewed 2 Oct 2026)
+INSERT INTO cuisines (name) VALUES
+  ('Odia'),
+  ('North Indian'),
+  ('South Indian'),
+  ('Mughlai'),
+  ('Chinese'),
+  ('Continental'),
+  ('Street food'),
+  ('Bakery & desserts'),
+  ('Fast food'),
+  ('Beverages');
+
+INSERT INTO dish_categories (name) VALUES
+  ('Biryani'),
+  ('Momos'),
+  ('Dosa'),
+  ('Rolls'),
+  ('Thali'),
+  ('Chhena sweets'),
+  ('Rice & Pulao'),
+  ('Curry'),
+  ('Veg curry'),
+  ('Dal'),
+  ('Breads'),
+  ('Idli & Vada'),
+  ('South Indian tiffin'),
+  ('Noodles'),
+  ('Fried rice'),
+  ('Chinese starters'),
+  ('Soup'),
+  ('Chaat'),
+  ('Fritters & snacks'),
+  ('Kebab & Tandoori'),
+  ('Fry'),
+  ('Pitha'),
+  ('Sweets'),
+  ('Pizza'),
+  ('Burger'),
+  ('Sandwich'),
+  ('Pasta'),
+  ('Cakes & pastries'),
+  ('Drinks');
+
+INSERT INTO main_ingredients (name) VALUES
+  ('Chicken'),
+  ('Mutton'),
+  ('Fish'),
+  ('Prawn'),
+  ('Egg'),
+  ('Paneer'),
+  ('Mushroom'),
+  ('Crab'),
+  ('Chhena');
 
 -- Down Migration
 DROP TABLE config_settings;

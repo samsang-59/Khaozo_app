@@ -24,6 +24,42 @@ describe('seeds/seed.sql', () => {
     expect(c.distinctAreas ?? c.distinct_areas).toBe(c.areas);
   });
 
+  test('loads the reviewed dish catalog (175 dishes, 164 aliases)', async () => {
+    const c = await counts();
+    expect(c.dishes).toBe(175);
+    expect(c.aliases).toBe(164);
+  });
+
+  test('catalog spot checks: links, diet, no main ingredient where none', async () => {
+    const { rows } = await pool.query(
+      `SELECT d.name, c.name AS category, cu.name AS cuisine, mi.name AS ingredient, d.diet, d.status
+       FROM standard_dishes d
+       JOIN dish_categories c ON c.id = d.category_id
+       JOIN cuisines cu ON cu.id = d.cuisine_id
+       LEFT JOIN main_ingredients mi ON mi.id = d.main_ingredient_id
+       WHERE d.name IN ('Chicken Dum Biryani', 'Dalma', 'Rasagola', 'Margherita Pizza', 'Masala Chai')
+       ORDER BY d.name`,
+    );
+    expect(rows).toEqual([
+      { name: 'Chicken Dum Biryani', category: 'Biryani', cuisine: 'Mughlai', ingredient: 'Chicken', diet: 'non_veg', status: 'active' },
+      { name: 'Dalma', category: 'Veg curry', cuisine: 'Odia', ingredient: null, diet: 'veg', status: 'active' },
+      { name: 'Margherita Pizza', category: 'Pizza', cuisine: 'Fast food', ingredient: null, diet: 'veg', status: 'active' },
+      { name: 'Masala Chai', category: 'Drinks', cuisine: 'Beverages', ingredient: null, diet: 'veg', status: 'active' },
+      { name: 'Rasagola', category: 'Chhena sweets', cuisine: 'Odia', ingredient: 'Chhena', diet: 'veg', status: 'active' },
+    ]);
+    const alias = await pool.query(`SELECT d.name FROM dish_aliases a JOIN standard_dishes d ON d.id = a.standard_dish_id WHERE a.alias = 'rasgulla'`);
+    expect(alias.rows).toEqual([{ name: 'Rasagola' }]);
+  });
+
+  test('no veg / egg dish has a meat or fish main ingredient', async () => {
+    const { rows } = await pool.query(
+      `SELECT d.name FROM standard_dishes d JOIN main_ingredients mi ON mi.id = d.main_ingredient_id
+       WHERE (d.diet = 'veg' AND mi.name IN ('Chicken', 'Mutton', 'Fish', 'Prawn', 'Crab', 'Egg'))
+          OR (d.diet = 'egg' AND mi.name IN ('Chicken', 'Mutton', 'Fish', 'Prawn', 'Crab'))`,
+    );
+    expect(rows).toEqual([]);
+  });
+
   test('running it twice creates no duplicates', async () => {
     const before = await counts();
     await runSeed();

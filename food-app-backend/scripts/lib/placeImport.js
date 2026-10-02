@@ -164,6 +164,8 @@ const POINT = 'ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography';
 //  - the same (source, source_ref) already exists (re-running the import), or
 //  - any existing place is within 50 m with a similar name (pg_trgm %, OSM ↔ Foursquare overlap).
 // area_id = nearest area pin.
+// Imported places start as verified (established datasets — decision 2 Oct 2026);
+// only user-added places go through the confirmation rule (Phase 3).
 export const importRecords = async (db, records) => {
   const stats = { inserted: 0, sameSource: 0, merged: 0, skippedOutside: 0 };
 
@@ -197,10 +199,10 @@ export const importRecords = async (db, records) => {
     }
 
     const { rows } = await db.query(
-      `INSERT INTO places (name, location, address, area_id, place_type, diet_type, phone, source, source_ref)
+      `INSERT INTO places (name, location, address, area_id, place_type, diet_type, phone, source, source_ref, status, verified_at)
        VALUES ($1, ${POINT}, $4,
                (SELECT id FROM areas ORDER BY location <-> ${POINT} LIMIT 1),
-               $5, $6, $7, $8, $9)
+               $5, $6, $7, $8, $9, 'verified', now())
        ON CONFLICT (source, source_ref) DO NOTHING
        RETURNING id`,
       [r.name, r.lng, r.lat, r.address, r.placeType, r.dietType, r.phone, r.source, r.sourceRef],

@@ -1,29 +1,27 @@
-# Khaozo — Dish Catalog (DRAFT for review)
+# Khaozo — Dish Catalog (REVIEWED)
 
-> Status: **DRAFT — Claude drafted, waiting for Sangram's review** (Phase 1 prerequisite, `06_phase_plan.md`)
+> Status: **REVIEWED** — Claude drafted, Sangram reviewed (2 Oct 2026). Phase 1 prerequisite, `06_phase_plan.md`
 > Last updated: 2 Oct 2026
 > Feeds: migration `002` (cuisines, dish categories, main ingredients, tags — must-have rows) and `seeds/seed.sql` (standard dishes + aliases)
 > Rules from `03_data_modelling.md`: category = dish **type** only · cuisine sits on the **standard dish** · one optional **main ingredient** per dish (used for "foods to avoid") · diet = `veg` / `egg` / `non_veg` (own column) · aliases are lowercase and each alias points to **exactly one** dish
 
-**How to review:** strike out / edit / add rows directly. Things I was unsure about are marked **❓**.
+**Source of truth** for the catalog rows in migration `002` and `seeds/seed.sql` — change this file first, then the SQL.
 
 ---
 
 ## 1. Cuisines (migration 002)
-From the plan: Odia · North Indian · South Indian · Mughlai · Chinese · Continental · Street food · Bakery & desserts
-**Proposed additions ❓:** Fast food (burgers, pizza, sandwiches — currently no good home) · Beverages (tea, coffee, lassi, shakes)
+Odia · North Indian · South Indian · Mughlai · Chinese · Continental · Street food · Bakery & desserts · Fast food · Beverages
 
 ## 2. Main ingredients (migration 002)
-From the plan: Chicken · Mutton · Fish · Prawn · Egg · Paneer · Mushroom
-**Proposed additions ❓:** Crab · Pork (served at some Chinese / North-East places) · Chhena (cottage cheese — avoided by some people with dairy issues)
+Chicken · Mutton · Fish · Prawn · Egg · Paneer · Mushroom · Crab · Chhena
+(Pork not added — Pork Momos has no main ingredient.)
 
 ## 3. Tags (migration 002 — fixed by the plan, no changes)
 - mood: Work · Study · Date · Family · Friends · Solo · Quick bite · Late night · Celebration · Budget
 - meal_time: Breakfast · Lunch · Evening snacks · Dinner · Late night
 
 ## 4. Dish categories (migration 002)
-From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
-**Proposed additions:** Rice & Pulao · Curry · Veg curry · Dal · Breads · Idli & Vada · South Indian tiffin · Noodles · Fried rice · Chinese starters · Soup · Chaat · Fritters & snacks · Kebab & Tandoori · Fry · Pitha · Sweets · Pizza · Burger · Sandwich · Pasta · Cakes & pastries · Drinks
+Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets · Rice & Pulao · Curry · Veg curry · Dal · Breads · Idli & Vada · South Indian tiffin · Noodles · Fried rice · Chinese starters · Soup · Chaat · Fritters & snacks · Kebab & Tandoori · Fry · Pitha · Sweets · Pizza · Burger · Sandwich · Pasta · Cakes & pastries · Drinks
 
 ---
 
@@ -47,8 +45,8 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Pakhala Bhata | Odia | – | veg | pakhala, pakhal, panta bhata |
 | Jeera Rice | North Indian | – | veg | jira rice |
 | Veg Pulao | North Indian | – | veg | veg pulav, pulao |
-| Plain Rice | North Indian | – | veg | steamed rice, bhata ❓ |
-| Curd Rice | South Indian | – | veg | dahi bhata ❓ |
+| Plain Rice | North Indian | – | veg | steamed rice, bhata |
+| Curd Rice | South Indian | – | veg | dahi bhata |
 
 ### Thali
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -58,7 +56,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | North Indian Veg Thali | North Indian | – | veg | veg thali |
 | South Indian Meals | South Indian | – | veg | south indian thali, meals |
 | Chicken Thali | North Indian | Chicken | non_veg | – |
-| Mutton Thali | Odia ❓ | Mutton | non_veg | mansa thali |
+| Mutton Thali | Odia | Mutton | non_veg | mansa thali |
 
 ### Curry (non-veg / egg)
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -76,7 +74,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Fish Curry | Odia | Fish | non_veg | machha tarkari |
 | Chingudi Malai Curry | Odia | Prawn | non_veg | prawn malai curry, chingri malai curry |
 | Prawn Curry | Odia | Prawn | non_veg | chingudi tarkari |
-| Crab Curry | Odia | Crab ❓ | non_veg | kankada tarkari |
+| Crab Curry | Odia | Crab | non_veg | kankada tarkari |
 | Egg Curry | Odia | Egg | egg | anda tarkari, egg tarkari |
 
 ### Veg curry
@@ -84,7 +82,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 |---|---|---|---|---|
 | Dalma | Odia | – | veg | – |
 | Santula | Odia | – | veg | – |
-| Chhena Tarkari | Odia | Chhena ❓ | veg | chhena curry |
+| Chhena Tarkari | Odia | Chhena | veg | chhena curry |
 | Aloo Potala Rasa | Odia | – | veg | potala rasa, parwal curry |
 | Paneer Butter Masala | North Indian | Paneer | veg | pbm, paneer makhani |
 | Kadai Paneer | North Indian | Paneer | veg | paneer kadai |
@@ -146,7 +144,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Veg Fried Momos | Chinese | – | veg | fried veg momos |
 | Paneer Momos | Chinese | Paneer | veg | paneer momo |
 | Chicken Tandoori Momos | Chinese | Chicken | non_veg | tandoori momos |
-| Pork Momos | Chinese | Pork ❓ | non_veg | – |
+| Pork Momos | Chinese | – | non_veg | – |
 
 ### Noodles
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -162,7 +160,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Veg Fried Rice | Chinese | – | veg | – |
 | Chicken Fried Rice | Chinese | Chicken | non_veg | – |
 | Egg Fried Rice | Chinese | Egg | egg | – |
-| Mixed Fried Rice | Chinese | Chicken ❓ | non_veg | mix fried rice |
+| Mixed Fried Rice | Chinese | Chicken | non_veg | mix fried rice |
 
 ### Chinese starters
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -170,7 +168,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Chilli Chicken | Chinese | Chicken | non_veg | chili chicken |
 | Chicken Lollipop | Chinese | Chicken | non_veg | lollipop |
 | Chicken Manchurian | Chinese | Chicken | non_veg | – |
-| Veg Manchurian | Chinese | – | veg | gobi manchurian ❓ |
+| Veg Manchurian | Chinese | – | veg | gobi manchurian |
 | Chilli Paneer | Chinese | Paneer | veg | chili paneer |
 | Chilli Mushroom | Chinese | Mushroom | veg | – |
 | Honey Chilli Potato | Chinese | – | veg | – |
@@ -200,7 +198,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 |---|---|---|---|---|
 | Dahibara Aloodum | Street food | – | veg | dahibara, dahi bara aloo dum, dahi vada aloo dum |
 | Gupchup | Street food | – | veg | pani puri, golgappa, puchka |
-| Chaat | Street food | – | veg | ❓ (too generic? maybe "Matar Chaat") |
+| Matar Chaat | Street food | – | veg | – |
 | Bhel Puri | Street food | – | veg | bhel |
 | Papdi Chaat | Street food | – | veg | – |
 | Aloo Tikki Chaat | Street food | – | veg | tikki chaat |
@@ -211,7 +209,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Bara Ghugni | Odia | – | veg | bara ghuguni, vada ghugni |
 | Ghugni | Odia | – | veg | ghuguni |
 | Aloo Chop | Odia | – | veg | alu chop |
-| Piaji | Odia | – | veg | onion pakoda ❓ |
+| Piaji | Odia | – | veg | onion pakoda |
 | Samosa | Street food | – | veg | singada |
 | Mudhi Mansa | Odia | Mutton | non_veg | mudi mansa |
 | Egg Chop | Street food | Egg | egg | dimer chop |
@@ -236,7 +234,7 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 |---|---|---|---|---|
 | Fish Fry | Odia | Fish | non_veg | machha bhaja |
 | Prawn Fry | Odia | Prawn | non_veg | chingudi bhaja |
-| Crab Fry | Odia | Crab ❓ | non_veg | kankada bhaja |
+| Crab Fry | Odia | Crab | non_veg | kankada bhaja |
 | Chicken Fry | North Indian | Chicken | non_veg | – |
 | Egg Omelette | Street food | Egg | egg | omelette, omlet |
 
@@ -253,14 +251,14 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 ### Chhena sweets
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Chhena Poda | Odia | Chhena ❓ | veg | chenna poda, chena poda |
-| Rasagola | Odia | Chhena ❓ | veg | rasgulla, rosogolla, rasagolla |
-| Rasabali | Odia | Chhena ❓ | veg | – |
-| Chhena Gaja | Odia | Chhena ❓ | veg | chenna gaja |
-| Chhena Jhili | Odia | Chhena ❓ | veg | chenna jhili |
-| Chhena Murki | Odia | Chhena ❓ | veg | – |
-| Rasmalai | Bakery & desserts | Chhena ❓ | veg | ras malai |
-| Sandesh | Bakery & desserts | Chhena ❓ | veg | sondesh |
+| Chhena Poda | Odia | Chhena | veg | chenna poda, chena poda |
+| Rasagola | Odia | Chhena | veg | rasgulla, rosogolla, rasagolla |
+| Rasabali | Odia | Chhena | veg | – |
+| Chhena Gaja | Odia | Chhena | veg | chenna gaja |
+| Chhena Jhili | Odia | Chhena | veg | chenna jhili |
+| Chhena Murki | Odia | Chhena | veg | – |
+| Rasmalai | Bakery & desserts | Chhena | veg | ras malai |
+| Sandesh | Bakery & desserts | Chhena | veg | sondesh |
 
 ### Sweets
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -271,29 +269,29 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 | Kheer | North Indian | – | veg | payasa, khiri |
 | Jalebi | Street food | – | veg | jilebi |
 | Gajar Halwa | North Indian | – | veg | gajar ka halwa |
-| Malpua | Odia ❓ | – | veg | – |
+| Malpua | Odia | – | veg | – |
 
-### Pizza ❓ (cuisine: Fast food if added, else Continental)
+### Pizza
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Margherita Pizza | Continental | – | veg | margarita pizza |
-| Paneer Tikka Pizza | Continental | Paneer | veg | – |
-| Chicken Pizza | Continental | Chicken | non_veg | – |
-| Farmhouse Pizza | Continental | – | veg | – |
+| Margherita Pizza | Fast food | – | veg | margarita pizza |
+| Paneer Tikka Pizza | Fast food | Paneer | veg | – |
+| Chicken Pizza | Fast food | Chicken | non_veg | – |
+| Farmhouse Pizza | Fast food | – | veg | – |
 
 ### Burger
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Veg Burger | Continental | – | veg | aloo tikki burger |
-| Chicken Burger | Continental | Chicken | non_veg | – |
-| Paneer Burger | Continental | Paneer | veg | – |
+| Veg Burger | Fast food | – | veg | aloo tikki burger |
+| Chicken Burger | Fast food | Chicken | non_veg | – |
+| Paneer Burger | Fast food | Paneer | veg | – |
 
 ### Sandwich
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Veg Grilled Sandwich | Continental | – | veg | grilled sandwich, veg sandwich |
-| Chicken Sandwich | Continental | Chicken | non_veg | – |
-| Club Sandwich | Continental | Chicken ❓ | non_veg | – |
+| Veg Grilled Sandwich | Fast food | – | veg | grilled sandwich, veg sandwich |
+| Chicken Sandwich | Fast food | Chicken | non_veg | – |
+| Club Sandwich | Fast food | Chicken | non_veg | – |
 
 ### Pasta
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
@@ -305,26 +303,26 @@ From the plan: Biryani · Momos · Dosa · Rolls · Thali · Chhena sweets
 ### Cakes & pastries
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Chocolate Pastry | Bakery & desserts | – | egg ❓ | choco pastry |
-| Black Forest Pastry | Bakery & desserts | – | egg ❓ | black forest |
-| Brownie | Bakery & desserts | – | egg ❓ | chocolate brownie |
-| Cheesecake | Bakery & desserts | – | egg ❓ | – |
+| Chocolate Pastry | Bakery & desserts | – | egg | choco pastry |
+| Black Forest Pastry | Bakery & desserts | – | egg | black forest |
+| Brownie | Bakery & desserts | – | egg | chocolate brownie |
+| Cheesecake | Bakery & desserts | – | egg | – |
 
-### Drinks ❓ (cuisine: Beverages if added)
+### Drinks
 | Dish | Cuisine | Main ingredient | Diet | Aliases |
 |---|---|---|---|---|
-| Masala Chai | Street food | – | veg | chai, cha, tea |
-| Cold Coffee | Continental | – | veg | – |
-| Filter Coffee | South Indian | – | veg | – |
-| Lassi | North Indian | – | veg | sweet lassi |
-| Mango Shake | Continental | – | veg | – |
-| Fresh Lime Soda | Continental | – | veg | lime soda |
+| Masala Chai | Beverages | – | veg | chai, cha, tea |
+| Cold Coffee | Beverages | – | veg | – |
+| Filter Coffee | Beverages | – | veg | – |
+| Lassi | Beverages | – | veg | sweet lassi |
+| Mango Shake | Beverages | – | veg | – |
+| Fresh Lime Soda | Beverages | – | veg | lime soda |
 
 ---
 
-## Open questions for review
-1. Add cuisines **Fast food** and **Beverages**? (Pizza/burger/drinks otherwise sit under Continental / Street food.)
-2. Add main ingredients **Crab**, **Pork**, **Chhena**? If Chhena is not added, the Chhena-sweet rows get "–".
-3. Cakes/pastries: `egg` by default, or `veg` (eggless is common in Bhubaneswar bakeries)? Bakeries can add eggless variants as menu items either way.
-4. "Chaat" (generic) — keep as its own dish or drop?
-5. Missing local favourites? (Specific Bhubaneswar dishes you want rated at launch.)
+## Review decisions (2 Oct 2026)
+1. Cuisines **Fast food** (pizza, burger, sandwich) and **Beverages** (all drinks) added.
+2. Main ingredients **Crab** and **Chhena** added; **Pork** not added.
+3. Cakes / pastries default to `egg`; eggless variants are filtered by the user's diet filter.
+4. Generic "Chaat" replaced by a specific kind (**Matar Chaat**) — chaat dishes are always specific.
+5. No missing local dishes.

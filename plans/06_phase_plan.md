@@ -81,4 +81,7 @@ Items marked "verify at setup time" above, now checked:
 3. **Place data licences (Phase 1) — decision: import both, as planned.**
    - **Foursquare OS Places:** Apache 2.0 (commercial use OK) → keep the NOTICE / attribution. Download is gated on Hugging Face (needs Sangram's login + accepting terms).
    - **OpenStreetMap:** ODbL → credit "© OpenStreetMap contributors" + state data is under ODbL. Mixing OSM with other POIs in one `places` table = a *derivative database* → if publicly used, the **places data** must be offered under ODbL (share-alike). Ratings/reviews are a separate data type and stay ours. Accepted for v1: credits on `/about`, places dump offered on request.
-4. **Dish catalog (Phase 1):** draft in `08_dish_catalog_draft.md`, waiting for review.
+4. **Dish catalog (Phase 1):** reviewed → `08_dish_catalog.md` (source of truth): 10 cuisines (+ Fast food, Beverages), 29 categories, 9 main ingredients (+ Crab, Chhena; no Pork), 175 dishes, 164 aliases. Cakes/pastries default to egg.
+5. **Imported places start `verified`** (OSM / Foursquare are established datasets). Only **user-added** places start `unverified` and need confirmation weights ≥ `place_verify_threshold` (5).
+6. **Area pins:** 73 (not ~100) — OSM has no reliable points for more Bhubaneswar localities; admin can add more later.
+7. **First OSM import (dev DB):** 130 OSM elements → 126 places (4 merged as duplicates).

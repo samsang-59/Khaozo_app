@@ -57,12 +57,12 @@ describe('importRecords', () => {
     expect(stats.inserted).toBe(1);
   });
 
-  test('area = nearest area pin; status starts unverified', async () => {
+  test('area = nearest area pin; imported places start verified', async () => {
     await importRecords(pool, [record(), record({ sourceRef: 'node/9', name: 'KIIT Food Court', lat: 20.355, lng: 85.82 })]);
-    const { rows } = await pool.query('SELECT name, area_id, status, source FROM places ORDER BY name');
+    const { rows } = await pool.query('SELECT name, area_id, status, source, verified_at IS NOT NULL AS has_verified_at FROM places ORDER BY name');
     expect(rows).toEqual([
-      { name: 'KIIT Food Court', area_id: patia.id, status: 'unverified', source: 'osm' },
-      { name: 'Tarini Restaurant', area_id: jaydevVihar.id, status: 'unverified', source: 'osm' },
+      { name: 'KIIT Food Court', area_id: patia.id, status: 'verified', source: 'osm', has_verified_at: true },
+      { name: 'Tarini Restaurant', area_id: jaydevVihar.id, status: 'verified', source: 'osm', has_verified_at: true },
     ]);
   });
 

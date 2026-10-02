@@ -76,6 +76,10 @@ const main = async () => {
 
 try {
   await main();
+} catch (err) {
+  // Log and exit cleanly (an uncaught rejection here crashes Node on Windows during exit)
+  console.error('[import] failed:', err.message);
+  process.exitCode = 1;
 } finally {
   await closeDb();
 }

@@ -79,6 +79,22 @@ describe('migrations 001–008', () => {
     });
   });
 
+  test('must-have catalog rows: cuisines, dish categories, main ingredients', async () => {
+    // Ignore rows other test files create with ensureLookup ('Test …')
+    const names = async (table) =>
+      (await pool.query(`SELECT name FROM ${table} WHERE name NOT LIKE 'Test %' ORDER BY id`)).rows.map((r) => r.name);
+    expect(await names('cuisines')).toEqual([
+      'Odia', 'North Indian', 'South Indian', 'Mughlai', 'Chinese', 'Continental',
+      'Street food', 'Bakery & desserts', 'Fast food', 'Beverages',
+    ]);
+    expect(await names('main_ingredients')).toEqual([
+      'Chicken', 'Mutton', 'Fish', 'Prawn', 'Egg', 'Paneer', 'Mushroom', 'Crab', 'Chhena',
+    ]);
+    const categories = await names('dish_categories');
+    expect(categories).toHaveLength(29);
+    expect(categories).toEqual(expect.arrayContaining(['Biryani', 'Momos', 'Dosa', 'Rolls', 'Thali', 'Chhena sweets']));
+  });
+
   test('indexes from migration 008 exist (spatial, vector, trigram)', async () => {
     const { rows } = await pool.query(
       `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'public'`,
