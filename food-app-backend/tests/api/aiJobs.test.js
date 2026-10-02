@@ -34,14 +34,14 @@ afterAll(closeConnections);
 describe('dish embeddings', () => {
   test('sweep embeds every dish without one', async () => {
     embedImpl = async () => oneHot(0);
-    expect(await runJob(JOBS.EMBED_DISHES, {})).toEqual({ embedded: 2, remaining: 0 });
+    expect(await runJob(JOBS.EMBED_DISHES, {})).toEqual({ embedded: 2, stoppedEarly: false });
     const { rows } = await pool.query('SELECT COUNT(*) AS n FROM standard_dishes WHERE embedding IS NULL');
     expect(rows[0].n).toBe(0);
   });
 
   test('AI unavailable → stops, next run continues', async () => {
     embedImpl = async () => null;
-    expect(await runJob(JOBS.EMBED_DISHES, {})).toEqual({ embedded: 0, remaining: 2 });
+    expect(await runJob(JOBS.EMBED_DISHES, {})).toEqual({ embedded: 0, stoppedEarly: true });
   });
 
   test('dishMatcher falls back to meaning when spelling does not help', async () => {

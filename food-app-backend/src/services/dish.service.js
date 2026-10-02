@@ -47,15 +47,19 @@ export const best = async (standardDishId, { lat, lng, limit, cursor }) => {
 };
 
 // Job: give every standard dish without an embedding one (seeded catalog, new user dishes).
-// Stops early when AI is unavailable / out of budget — the next run continues.
+// Works in batches until none are left; stops early when AI is unavailable / out of budget
+// (the next run continues where it stopped).
 export const embedMissingDishes = async (batch = 100) => {
-  const dishes = await dishRepo.findMissingEmbeddings(batch);
   let done = 0;
-  for (const d of dishes) {
-    const vector = await aiAdapter.embed(d.name, 'SEMANTIC_SIMILARITY');
-    if (!vector) break;
-    await dishRepo.setEmbedding(d.id, vector);
-    done += 1;
+  for (;;) {
+    const dishes = await dishRepo.findMissingEmbeddings(batch);
+    if (dishes.length === 0) break;
+    for (const d of dishes) {
+      const vector = await aiAdapter.embed(d.name, 'SEMANTIC_SIMILARITY');
+      if (!vector) return ok({ embedded: done, stoppedEarly: true });
+      await dishRepo.setEmbedding(d.id, vector);
+      done += 1;
+    }
   }
-  return ok({ embedded: done, remaining: dishes.length - done });
+  return ok({ embedded: done, stoppedEarly: false });
 };
