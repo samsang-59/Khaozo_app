@@ -1,8 +1,9 @@
 // Place import helpers (OpenStreetMap + Foursquare Open Places → places table).
 // Pure mapping functions + one DB function. Used by scripts/import-places.js and tests.
 
-// Bhubaneswar bounding box (south, west, north, east)
-export const BBSR_BBOX = { south: 20.18, west: 85.70, north: 20.40, east: 85.95 };
+import { BBSR_BBOX, insideBbox } from '../../src/utils/geo.js';
+
+export { BBSR_BBOX, insideBbox };
 
 // ---- OpenStreetMap ------------------------------------------------------------
 
@@ -152,9 +153,6 @@ export const fsqToRecord = (row) => {
     cuisines: [...new Set(cuisines)],
   };
 };
-
-export const insideBbox = ({ lat, lng }, { south, west, north, east } = BBSR_BBOX) =>
-  lat >= south && lat <= north && lng >= west && lng <= east;
 
 // ---- Database -----------------------------------------------------------------
 

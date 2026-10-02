@@ -92,3 +92,12 @@ Items marked "verify at setup time" above, now checked:
 - **optionalAuth:** no token → guest; a token that is present but invalid/expired → 401 (so the frontend refreshes instead of silently dropping "Match %").
 - **PATCH /me** accepts `name` and `journalVisibility` only. **DELETE /me** comes with account deletion in Phase 8.
 - BIGINT[] results (e.g. `array_agg(id)`) are also parsed as numbers (db.js).
+
+## Phase 3 notes (2 Oct 2026)
+- **Trust levels:** the plan names the weights (new 0.5 / normal 1.0 / trusted 2.0) but not the rules. Added config keys in **migration 009** (so the materialized views migration becomes **010**): `new_account_days` = 7 (younger accounts are "new"), `trusted_min_score` = 2.0 (users.trust_score at or above → "trusted").
+- **Places list:** default radius 3 km (same as search), max 20 km; centre from lat/lng or an area pin; nearest first with keyset (cursor) pagination. Closed + soft-deleted places hidden; `?status=closed` shows closed ones.
+- **Opening hours:** computed in IST; "closing soon" = within 30 minutes. Same rules in the SQL open-now filter and the JS status (tested against each other).
+- **Add place:** Bhubaneswar bounding box only (`OUTSIDE_SERVICE_AREA`). Duplicate = similar name (pg_trgm default threshold) within 50 m.
+- **Reports:** one pending report per user + place + reason. `suggestedChange` shapes: `{lat,lng}` / `{hours:[…]}` / `{text}`.
+- **Menu items** (`POST /places/:id/menu-items`, built here because dishMatcher is): exact match → auto-link; similar → 409 "Is this X?" with candidates, and a confirmed spelling becomes an alias; no match → new standard dish `pending_review` (needs category, cuisine, diet; diet checked against the main ingredient). `GET /dishes/:id/best` needs ranking → Phase 5.
+- Redis client connects lazily (first command), so importing a module never opens a socket.

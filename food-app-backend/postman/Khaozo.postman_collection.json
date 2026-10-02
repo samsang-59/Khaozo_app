@@ -16,6 +16,10 @@
     {
       "key": "googleIdToken",
       "value": "paste the ID token from /dev/google-login"
+    },
+    {
+      "key": "placeId",
+      "value": "1"
     }
   ],
   "item": [
@@ -306,6 +310,413 @@
               "listen": "test",
               "script": {
                 "exec": []
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 — Places & dishes",
+      "description": "Log in first (Phase 2) for the 🔐 requests.",
+      "item": [
+        {
+          "name": "Places within 2 km of KIIT",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places?lat=20.3530&lng=85.8195&radius=2000&limit=10",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('nearest first', () => { const d = pm.response.json().data.items.map(p => p.distanceM); pm.expect(d).to.eql([...d].sort((a, b) => a - b)); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Places by name (fuzzy)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places?q=biryani",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Open now near Saheed Nagar",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places?lat=20.2887&lng=85.8488&openNow=true",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unverified places",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places?status=unverified",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place page",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place menu",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}/menu",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add place (409 if a similar one is within 50 m)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Chai Stall\",\n  \"lat\": 20.353,\n  \"lng\": 85.8195,\n  \"placeType\": \"street_stall\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add place anyway (confirmNew)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Chai Stall\",\n  \"lat\": 20.353,\n  \"lng\": 85.8195,\n  \"placeType\": \"street_stall\",\n  \"confirmNew\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm place exists",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places/{{placeId}}/confirm",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report place",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places/{{placeId}}/reports",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"wrong_hours\",\n  \"suggestedChange\": {\n    \"hours\": [\n      {\n        \"day\": 1,\n        \"opensAt\": \"09:00\",\n        \"closesAt\": \"22:00\"\n      }\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add hours (only if none)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/places/{{placeId}}/hours",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hours\": [\n    {\n      \"day\": 5,\n      \"opensAt\": \"18:00\",\n      \"closesAt\": \"02:00\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dish match — alias",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dishes/match?q=chkn biryani",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dish match — misspelling",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dishes/match?q=chiken dum biriyani",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add menu item",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places/{{placeId}}/menu-items",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rasgulla\",\n  \"price\": 20\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Areas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/areas",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cuisines",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/cuisines",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dish categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dish-categories",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Main ingredients",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/main-ingredients",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tags",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ]

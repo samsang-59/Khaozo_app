@@ -42,7 +42,7 @@ const migrate = (direction) =>
     log: () => {},
   });
 
-describe('migrations 001–008', () => {
+describe('migrations', () => {
   test('fresh test DB has all 27 tables', async () => {
     const tables = await listTables();
     expect(tables).toHaveLength(27);
@@ -69,6 +69,7 @@ describe('migrations 001–008', () => {
       group_expiry_hours: 4,
       journal_gap_hours: 3,
       min_ratings_for_label: 5,
+      new_account_days: 7,
       mixed_reviews: { maxStars: 2.5, belowOrderAgainPct: 40 },
       must_order: { minStars: 4, minOrderAgainPct: 70 },
       place_verify_threshold: 5,
@@ -76,6 +77,7 @@ describe('migrations 001–008', () => {
       summary_refresh_every: 5,
       tag_min_votes: 3,
       trust_weights: { new: 0.5, normal: 1.0, trusted: 2.0 },
+      trusted_min_score: 2.0,
     });
   });
 

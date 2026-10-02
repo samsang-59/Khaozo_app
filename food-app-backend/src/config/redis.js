@@ -4,7 +4,7 @@ import { env } from './env.js';
 // One shared ioredis client. BullMQ (Phase 5) creates its own connections
 // from the same URL because its workers need maxRetriesPerRequest: null.
 export const redis = new Redis(env.redisUrl, {
-  lazyConnect: false,
+  lazyConnect: true, // connect on first command, so importing a module never opens a socket
   maxRetriesPerRequest: 3,
 });
 

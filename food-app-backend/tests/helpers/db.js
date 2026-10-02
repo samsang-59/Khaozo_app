@@ -88,3 +88,20 @@ export const insertMenuItem = async ({ placeId, standardDishId, name = 'Test Ite
   );
   return rows[0];
 };
+
+// Empty the test Redis DB (place / config / meta caches) between tests.
+export const resetCache = async () => {
+  const { redis } = await import('../../src/config/redis.js');
+  await redis.flushdb();
+};
+
+// Makes a user N days old (trust level "new" lasts new_account_days).
+export const ageUser = async (userId, days) => {
+  await pool.query(`UPDATE users SET created_at = now() - make_interval(days => $2) WHERE id = $1`, [userId, days]);
+};
+
+export const insertHours = async (placeId, rows) => {
+  for (const h of rows) {
+    await pool.query('INSERT INTO opening_hours (place_id, day, opens_at, closes_at) VALUES ($1, $2, $3, $4)', [placeId, h.day, h.opensAt, h.closesAt]);
+  }
+};
