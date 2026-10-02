@@ -1,5 +1,6 @@
 // dishService — dish match, best places for a dish (embeddings job comes in Phase 6).
 import * as dishMatcher from './helpers/dishMatcher.js';
+import * as aiAdapter from '../ai/aiAdapter.js';
 import * as dishRepo from '../repositories/dish.repo.js';
 import * as statsRepo from '../repositories/stats.repo.js';
 import { page } from '../utils/pagination.js';
@@ -43,4 +44,18 @@ export const best = async (standardDishId, { lat, lng, limit, cursor }) => {
     })),
     nextCursor,
   });
+};
+
+// Job: give every standard dish without an embedding one (seeded catalog, new user dishes).
+// Stops early when AI is unavailable / out of budget — the next run continues.
+export const embedMissingDishes = async (batch = 100) => {
+  const dishes = await dishRepo.findMissingEmbeddings(batch);
+  let done = 0;
+  for (const d of dishes) {
+    const vector = await aiAdapter.embed(d.name, 'SEMANTIC_SIMILARITY');
+    if (!vector) break;
+    await dishRepo.setEmbedding(d.id, vector);
+    done += 1;
+  }
+  return ok({ embedded: done, remaining: dishes.length - done });
 };

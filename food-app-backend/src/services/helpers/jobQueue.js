@@ -12,6 +12,9 @@ export const JOBS = Object.freeze({
   AUTO_TAGS: 'tags.auto',
   TRUST_SCORES: 'trust.recalculate',
   SESSION_CLEANUP: 'sessions.cleanup',
+  EMBED_DISHES: 'dishes.embed',
+  EMBED_REVIEW: 'review.embed',
+  SUMMARY: 'summary.refresh',
 });
 
 // BullMQ needs its own connection settings (maxRetriesPerRequest: null).

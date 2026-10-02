@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as placesController from '../controllers/places.controller.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { validate } from '../validators/validate.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import * as v from '../validators/places.validators.js';
 
 const router = Router();
@@ -12,9 +13,9 @@ router.get('/places/:id', optionalAuth, validate(v.placeId), placesController.de
 router.get('/places/:id/menu', validate(v.placeId), placesController.menu);
 
 // 🔐
-router.post('/places', requireAuth, validate(v.addPlace), placesController.add);
+router.post('/places', requireAuth, rateLimit('addPlace'), validate(v.addPlace), placesController.add);
 router.post('/places/:id/confirm', requireAuth, validate(v.placeId), placesController.confirm);
-router.post('/places/:id/reports', requireAuth, validate(v.createReport), placesController.report);
+router.post('/places/:id/reports', requireAuth, rateLimit('contribute'), validate(v.createReport), placesController.report);
 router.put('/places/:id/hours', requireAuth, validate(v.setHours), placesController.setHours);
 
 export default router;

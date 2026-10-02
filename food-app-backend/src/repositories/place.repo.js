@@ -187,3 +187,80 @@ export const verifiedCountsByAdder = async () => {
   );
   return Object.fromEntries(rows.map((r) => [r.added_by, r.n]));
 };
+
+// ---- Search / group candidates (search step 4, one SQL) ------------------------------
+// f: { lat, lng, radiusM, dishIds, maxPrice, diet, openNow, at, tagIds, vibeVector, limit }
+// With dishIds → one row per place: its best-rated menu item of those dishes.
+// Without → one row per place (place-level search, e.g. "cozy cafe to study").
+// Closed / deleted places never appear.
+export const findCandidates = async (f) => {
+  const params = [];
+  const add = (v) => {
+    params.push(v);
+    return `$${params.length}`;
+  };
+  const where = ['p.deleted_at IS NULL', "p.status <> 'closed'"];
+  const hasCentre = f.lat != null && f.lng != null;
+  let distance = 'NULL::float';
+  if (hasCentre) {
+    const centre = `ST_SetSRID(ST_MakePoint(${add(f.lng)}, ${add(f.lat)}), 4326)::geography`;
+    distance = `ST_Distance(p.location, ${centre})`;
+    if (f.radiusM) where.push(`ST_DWithin(p.location, ${centre}, ${add(f.radiusM)})`);
+  }
+  const at = add(f.at ?? new Date());
+  if (f.openNow) where.push(openNowSql(`${at}::timestamptz`));
+  if (f.tagIds?.length) where.push(`ps.tag_ids @> ${add(f.tagIds)}::bigint[]`);
+  const vibe = f.vibeVector
+    ? `(SELECT MAX(1 - (r.text_embedding <=> ${add(JSON.stringify(f.vibeVector))}::vector))
+        FROM place_reviews r WHERE r.place_id = p.id AND r.is_current AND r.deleted_at IS NULL AND r.text_embedding IS NOT NULL)`
+    : 'NULL::float';
+
+  const placeColumns = `
+    p.id AS place_id, p.name AS place_name, p.place_type, p.diet_type, p.price_level, p.status AS place_status,
+    a.name AS area_name, ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lng,
+    ${distance} AS distance_m,
+    COALESCE(ps.tag_ids, '{}') AS tag_ids, ps.avg_stars AS place_avg_stars, COALESCE(ps.review_count, 0) AS place_review_count,
+    ${openNowSql(`${at}::timestamptz`)} AS open_now,
+    EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id) AS has_hours,
+    ${vibe} AS vibe_similarity`;
+
+  let sql;
+  if (f.dishIds?.length) {
+    where.push("m.status = 'active'", `m.standard_dish_id = ANY(${add(f.dishIds)}::bigint[])`);
+    if (f.maxPrice) where.push(`m.price <= ${add(f.maxPrice)}`);
+    if (f.diet === 'veg') where.push(`d.diet = 'veg'`);
+    if (f.diet === 'egg') where.push(`d.diet IN ('veg', 'egg')`);
+    if (f.diet === 'non_veg') where.push(`d.diet = 'non_veg'`);
+    sql = `
+      SELECT * FROM (
+        SELECT DISTINCT ON (p.id) ${placeColumns},
+               m.id AS menu_item_id, m.name AS menu_item_name, m.price,
+               d.id AS standard_dish_id, d.name AS standard_dish_name, d.diet AS dish_diet,
+               d.main_ingredient_id, d.cuisine_id,
+               COALESCE(s.rating_count, 0) AS rating_count, s.avg_stars, s.bayes_score, s.label,
+               s.typical_spice, s.typical_sweetness, s.typical_oiliness
+        FROM menu_items m
+        JOIN places p ON p.id = m.place_id
+        JOIN areas a ON a.id = p.area_id
+        JOIN standard_dishes d ON d.id = m.standard_dish_id
+        LEFT JOIN menu_item_stats s ON s.menu_item_id = m.id
+        LEFT JOIN place_stats ps ON ps.place_id = p.id
+        WHERE ${where.join(' AND ')}
+        ORDER BY p.id, s.bayes_score DESC NULLS LAST, m.id
+      ) best
+      ORDER BY bayes_score DESC NULLS LAST, distance_m NULLS LAST
+      LIMIT ${add(f.limit ?? 200)}`;
+  } else {
+    if (f.diet === 'veg') where.push(`p.diet_type IN ('pure_veg', 'both')`);
+    sql = `
+      SELECT ${placeColumns}
+      FROM places p
+      JOIN areas a ON a.id = p.area_id
+      LEFT JOIN place_stats ps ON ps.place_id = p.id
+      WHERE ${where.join(' AND ')}
+      ORDER BY ps.avg_stars DESC NULLS LAST, distance_m NULLS LAST
+      LIMIT ${add(f.limit ?? 200)}`;
+  }
+  const { rows } = await pool.query(sql, params);
+  return rowsToCamel(rows);
+};

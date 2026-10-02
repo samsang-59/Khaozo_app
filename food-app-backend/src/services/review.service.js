@@ -1,5 +1,5 @@
 // reviewService — place review + "Good for" tag votes (user), edit, delete, public list.
-// Auto tag votes (code rules) are a background job queued after commit; review embeddings come in Phase 6.
+// Auto tag votes (code rules) and the review text embedding are background jobs queued after commit.
 import * as reviewRepo from '../repositories/review.repo.js';
 import * as placeRepo from '../repositories/place.repo.js';
 import * as photoRepo from '../repositories/photo.repo.js';
@@ -7,6 +7,7 @@ import * as metaRepo from '../repositories/meta.repo.js';
 import * as configService from './helpers/config.js';
 import * as storageService from './helpers/storage.js';
 import * as jobQueue from './helpers/jobQueue.js';
+import * as aiAdapter from '../ai/aiAdapter.js';
 import { page } from '../utils/pagination.js';
 import { ok, fail } from '../utils/result.js';
 
@@ -38,6 +39,7 @@ export const create = async ({ userId, placeId, tagIds, ...fields }) => {
 
   const review = await reviewRepo.createWithTagVotes(userId, placeId, fields, tagIds && [...new Set(tagIds)]); // committed
   await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'review', id: review.id });
+  if (review.reviewText) await jobQueue.add(jobQueue.JOBS.EMBED_REVIEW, { reviewId: review.id });
   return ok({ ...review, tagIds: await reviewRepo.userTagIds(userId, placeId) });
 };
 
@@ -57,6 +59,7 @@ export const update = async (reviewId, userId, { tagIds, ...fields }) => {
   if (tagProblem) return fail(tagProblem);
   const updated = await reviewRepo.updateWithTagVotes(review, fields, tagIds && [...new Set(tagIds)]);
   await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'review', id: review.id });
+  if (fields.reviewText !== undefined) await jobQueue.add(jobQueue.JOBS.EMBED_REVIEW, { reviewId: review.id });
   return ok({ ...updated, tagIds: await reviewRepo.userTagIds(userId, review.placeId) });
 };
 
@@ -75,4 +78,18 @@ export const listForPlace = async (placeId, { limit, cursor }) => {
   if (!place || place.deletedAt) return fail('PLACE_NOT_FOUND');
   const rows = await reviewRepo.listForPlace(placeId, { limit, cursor });
   return ok(page(rows, limit, (r) => ({ t: r.createdAt, id: r.id })));
+};
+
+// Job: review text → embedding (meaning search, e.g. "cozy"). No text → embedding cleared.
+export const embedReview = async (reviewId) => {
+  const review = await reviewRepo.findById(reviewId);
+  if (!review) return ok({ embedded: false });
+  if (!review.reviewText) {
+    await reviewRepo.setEmbedding(reviewId, null);
+    return ok({ embedded: false });
+  }
+  const vector = await aiAdapter.embed(review.reviewText, 'RETRIEVAL_DOCUMENT');
+  if (!vector) return ok({ embedded: false });
+  await reviewRepo.setEmbedding(reviewId, vector);
+  return ok({ embedded: true });
 };

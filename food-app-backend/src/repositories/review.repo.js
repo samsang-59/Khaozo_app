@@ -101,3 +101,8 @@ export const userTagIds = async (userId, placeId) => {
   );
   return rows.map((r) => r.tag_id);
 };
+
+// Review embeddings (meaning search: "cozy" → reviews saying "warm, comfortable")
+export const setEmbedding = async (id, vector) => {
+  await pool.query('UPDATE place_reviews SET text_embedding = $2::vector WHERE id = $1', [id, vector ? JSON.stringify(vector) : null]);
+};

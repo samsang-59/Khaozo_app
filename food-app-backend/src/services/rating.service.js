@@ -38,6 +38,7 @@ export const create = async ({ userId, menuItemId, ...fields }) => {
   await wishlistRepo.markTried(userId, { menuItemId, standardDishId: item.standardDishId });
   await jobQueue.add(jobQueue.JOBS.LEARN_TASTE, { userId });
   await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'rating', id: rating.id });
+  if (rating.reviewText) await jobQueue.add(jobQueue.JOBS.SUMMARY, { menuItemId });
   return ok(rating);
 };
 
@@ -55,6 +56,7 @@ export const update = async (ratingId, userId, fields) => {
   if (!rating.isCurrent) return fail('RATING_NOT_CURRENT');
   const updated = await ratingRepo.update(ratingId, fields);
   await jobQueue.add(jobQueue.JOBS.LEARN_TASTE, { userId });
+  if (fields.reviewText) await jobQueue.add(jobQueue.JOBS.SUMMARY, { menuItemId: rating.menuItemId });
   return ok(updated);
 };
 

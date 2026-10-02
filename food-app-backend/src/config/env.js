@@ -12,6 +12,13 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   JWT_SECRET: z.string().min(32, 'must be at least 32 characters'),
   ADMIN_EMAIL: z.string().email().optional(),
+  // AI (Phase 6). Without GEMINI_API_KEY the app still works: search falls back to keywords.
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  GEMINI_CHAT_MODEL: z.string().min(1).default('gemini-3.5-flash-lite'),
+  GEMINI_EMBED_MODEL: z.string().min(1).default('gemini-embedding-001'),
+  // Optional chat fallback — used only when both are set.
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_CHAT_MODEL: z.string().min(1).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -38,4 +45,12 @@ export const env = Object.freeze({
   googleClientId: raw.GOOGLE_CLIENT_ID,
   jwtSecret: raw.JWT_SECRET,
   adminEmail: raw.ADMIN_EMAIL,
+  // Tests never call real AI (no cost, no flakiness): keys are ignored when NODE_ENV=test.
+  ai: Object.freeze({
+    geminiKey: isTest ? undefined : raw.GEMINI_API_KEY,
+    geminiChatModel: raw.GEMINI_CHAT_MODEL,
+    geminiEmbedModel: raw.GEMINI_EMBED_MODEL,
+    openaiKey: isTest ? undefined : raw.OPENAI_API_KEY,
+    openaiChatModel: raw.OPENAI_CHAT_MODEL,
+  }),
 });

@@ -1091,6 +1091,77 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 6 — Search",
+      "description": "Plain-language search. With the Authorization header you get Match % and your diet / foods-to-avoid filter (showAll=true turns it off).",
+      "item": [
+        {
+          "name": "Spicy biryani near KIIT under 250",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=spicy%20biryani%20near%20KIIT%20under%20250",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Mutton biryani in Patia",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=mutton%20biryani%20in%20Patia",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Cozy cafe to study near Saheed Nagar",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=cozy%20cafe%20to%20study%20near%20Saheed%20Nagar",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Biryani near me (lat/lng) open now",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=biryani&lat=20.3530&lng=85.8195&openNow=true",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Show all (ignore my diet filter)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=biryani%20near%20KIIT&showAll=true",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

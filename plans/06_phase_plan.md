@@ -122,3 +122,15 @@ Items marked "verify at setup time" above, now checked:
 - **Taste learning** (after each rating): from liked dishes (≥ 4★): spice / sweetness / oiliness averages, budget bucket from price paid (else menu price). Locked fields never change.
 - **Jobs:** one BullMQ queue `khaozo`; `npm run worker`. Schedules: stats every 5 min, trust 02:30 IST, expired sessions 03:00 IST. Jobs are queued after commit; a queue failure never fails the user's request (logged; periodic jobs catch up).
 - **API now shows stats:** place page (`stats`, `mustOrder` top 3, `mixedReviews` up to 2), menu items, dish page; new `GET /dishes/:id/best` (by Bayesian score).
+
+## Phase 6 notes (2 Oct 2026)
+- **Models (env, swappable):** chat `gemini-3.5-flash-lite` (gemini-2.5-flash is closed to new users; 3.8-flash returned 503 "high demand" at setup), embeddings `gemini-embedding-001` at **768 dims** (matches `vector(768)`). OpenAI fallback only when both `OPENAI_API_KEY` and `OPENAI_CHAT_MODEL` are set (not configured now → chain is Gemini → keywords).
+- **Migration 011** (config): `search_weights` (plan's 40/20/15/10/10/5), `search_radius_m` 3 km → 6 km, `search_relax_price_pct` 20, `search_min_results` 3, `ai_daily_limit` gemini **500/day** (ours — counts chat + embeddings; check the real quota in AI Studio and adjust), `rate_limits` (plan's table).
+- **Score:** each part is 0..1; parts that don't apply to a search (no centre, no tags asked, no vibe, no taste) are left out and the other weights re-normalised. Relaxing drops a requirement, not its reward (a place with the asked-for tag still scores higher).
+- **Dish words:** a category word ("biryani", "momos") matches every dish in that category; otherwise dishMatcher (alias → pg_trgm → embedding, cosine ≥ 0.75). Unknown dish → place search with a note.
+- **Match %** (ours): average of spice / sweetness / oiliness closeness, budget-bucket closeness, favourite cuisine (1) or not (0.5). Query spice ("spicy biryani") is used as the taste part for guests.
+- **Personal diet + foods to avoid:** applied after the cache, `showAll=true` turns them off; the query's own diet is a filter that is never relaxed.
+- **Cache:** non-personal steps 2–6 for 10 min, key = query + UI filters + ~500 m grid; distances re-measured from the user's own point after reading the cache. AI parses cached 24 h (keyword parses are not cached, so AI is retried).
+- **Rate limits:** global `api` on every route except `/health`; `search`, `auth` (per IP), `contribute` (ratings, reviews, photos, reports — per user/hour), `addPlace` (per user/day). Off in the test app except in the rate-limit tests.
+- **Jobs:** `dishes.embed` (daily + right after the worker starts), `review.embed` (after a review with text), `summary.refresh` (after a rating with text; first summary once labelled, then every `summary_refresh_every` new text reviews). Prompts never contain names, emails or notes.
+- Tests never call real AI (keys ignored when NODE_ENV=test; AI tests mock fetch / the adapter).

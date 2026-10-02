@@ -1,4 +1,4 @@
-// menuItemService — add a menu item, dish page, ratings list (AI summary job comes in Phase 6).
+// menuItemService — add a menu item, dish page, ratings list, AI one-line summary job.
 import * as placeRepo from '../repositories/place.repo.js';
 import * as dishRepo from '../repositories/dish.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
@@ -6,6 +6,11 @@ import * as metaRepo from '../repositories/meta.repo.js';
 import * as ratingRepo from '../repositories/rating.repo.js';
 import * as statsRepo from '../repositories/stats.repo.js';
 import * as dishMatcher from './helpers/dishMatcher.js';
+import * as configService from './helpers/config.js';
+import * as jobQueue from './helpers/jobQueue.js';
+import * as aiAdapter from '../ai/aiAdapter.js';
+import { dishSummarySchema } from '../ai/schemas/dishSummary.js';
+import { dishSummaryPrompt } from '../ai/prompts/dishSummary.js';
 import { page } from '../utils/pagination.js';
 import { ok, fail } from '../utils/result.js';
 
@@ -85,6 +90,7 @@ export const addMenuItem = async (placeId, userId, input) => {
     addedBy: userId,
   });
   const dish = await dishRepo.findById(standardDishId);
+  if (dish.status === 'pending_review') await jobQueue.add(jobQueue.JOBS.EMBED_DISHES, {});
   return ok({ ...item, standardDish: { id: dish.id, name: dish.name, status: dish.status } });
 };
 
@@ -111,4 +117,22 @@ export const ratings = async (menuItemId, { limit, cursor }) => {
   if (!item || item.placeDeletedAt) return fail('MENU_ITEM_NOT_FOUND');
   const rows = await ratingRepo.listForMenuItem(menuItemId, { limit, cursor });
   return ok(page(rows, limit, (r) => ({ t: r.createdAt, id: r.id })));
+};
+
+// Job: AI one-line summary for labelled dishes (Must order / Mixed reviews), from text reviews.
+// Written the first time a labelled dish has text reviews, then refreshed every
+// summary_refresh_every new text reviews. AI unavailable → no summary (retried next time).
+export const refreshSummaryIfDue = async (menuItemId) => {
+  const s = await menuItemRepo.summaryInputs(menuItemId);
+  if (!s || !s.label || s.reviews.length === 0) return ok({ updated: false, why: 'not labelled or no text reviews' });
+  const every = await configService.get('summary_refresh_every');
+  const due = s.summaryUpdatedAt === null || s.newTextReviews >= every;
+  if (!due) return ok({ updated: false, why: 'not due' });
+  const ai = await aiAdapter.chat(
+    dishSummaryPrompt({ dishName: s.name, placeName: s.placeName, label: s.label, reviews: s.reviews }),
+    dishSummarySchema,
+  );
+  if (!ai.ok) return ok({ updated: false, why: 'AI unavailable' });
+  await menuItemRepo.setSummary(menuItemId, ai.data.summary);
+  return ok({ updated: true, summary: ai.data.summary });
 };

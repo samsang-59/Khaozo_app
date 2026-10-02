@@ -52,3 +52,27 @@ export const findById = async (id) => {
   );
   return toCamel(rows[0]) ?? null;
 };
+
+// AI summary job input: label (from stats), names, and text reviews (newest first).
+export const summaryInputs = async (menuItemId, maxReviews = 30) => {
+  const { rows } = await pool.query(
+    `SELECT m.id, m.name, m.summary_updated_at, p.name AS place_name, s.label,
+            (SELECT COUNT(*) FROM dish_ratings r
+              WHERE r.menu_item_id = m.id AND r.is_current AND r.deleted_at IS NULL AND r.review_text IS NOT NULL
+                AND (m.summary_updated_at IS NULL OR r.created_at > m.summary_updated_at))::int AS new_text_reviews,
+            COALESCE((SELECT array_agg(t.review_text) FROM (
+               SELECT review_text FROM dish_ratings r
+               WHERE r.menu_item_id = m.id AND r.is_current AND r.deleted_at IS NULL AND r.review_text IS NOT NULL
+               ORDER BY r.created_at DESC LIMIT $2) t), '{}') AS reviews
+     FROM menu_items m
+     JOIN places p ON p.id = m.place_id
+     LEFT JOIN menu_item_stats s ON s.menu_item_id = m.id
+     WHERE m.id = $1`,
+    [menuItemId, maxReviews],
+  );
+  return toCamel(rows[0]) ?? null;
+};
+
+export const setSummary = async (menuItemId, summary) => {
+  await pool.query('UPDATE menu_items SET ai_summary = $2, summary_updated_at = now(), updated_at = now() WHERE id = $1', [menuItemId, summary]);
+};

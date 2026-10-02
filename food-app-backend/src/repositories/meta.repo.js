@@ -42,3 +42,16 @@ export const findMainIngredient = async (id) => {
   const { rows } = await pool.query('SELECT id, name FROM main_ingredients WHERE id = $1', [id]);
   return rows[0] ?? null;
 };
+
+// Search: "near patia" → the Patia pin (exact name, else closest spelling)
+export const findAreaByText = async (text) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng
+     FROM areas
+     WHERE lower(name) = $1 OR similarity(lower(name), $1) >= 0.4
+     ORDER BY (lower(name) = $1) DESC, similarity(lower(name), $1) DESC
+     LIMIT 1`,
+    [text.toLowerCase()],
+  );
+  return rows[0] ? toCamel(rows[0]) : null;
+};
