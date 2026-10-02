@@ -11,13 +11,16 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand tests/unit"
+    "migrate": "node-pg-migrate up -m migrations --envPath .env",
+    "migrate:down": "node-pg-migrate down -m migrations --envPath .env",
+    "seed": "node scripts/seed.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
   },
   "dependencies": {
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
     "ioredis": "^5.11.1",
+    "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.1",
     "zod": "^4.6.5"
   },
