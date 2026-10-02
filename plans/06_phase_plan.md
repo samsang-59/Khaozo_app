@@ -73,3 +73,12 @@ Plan re-checked against `03_data_modelling.md`, `04_backend_architecture.md`, `b
 6. Reports: Phase 3 = create only; admin accept/reject = Phase 8 (made explicit).
 7. Place page in Phase 3 has no labels/stats until the materialized views exist (Phase 5) — made explicit.
 8. Not yet verified (marked in the plan, checked at that phase): exact Docker image tag + pgvector package name (Phase 0) · Foursquare Open Places licence + OSM terms (Phase 1) · Bhubaneswar dish catalog content still to be prepared (Phase 1).
+
+## Setup-time verification log (2 Oct 2026, during Phase 0)
+Items marked "verify at setup time" above, now checked:
+1. **Docker image (Phase 0):** `postgis/postgis:17-3.5` is built on Debian bullseye, whose PGDG apt repo is gone (404) → pgvector can't be installed on it. **Changed:** custom image now builds `FROM postgres:17-bookworm` + `postgresql-17-postgis-3` (**PostGIS 3.6.x**) + `postgresql-17-pgvector` (0.8.x) from PGDG. All PostGIS functions used by the plan are unchanged in 3.6. apt runs over **HTTPS** (the home network blocks plain-HTTP apt downloads; CA bundle copied from a tiny Alpine stage).
+2. **Local ports:** a native Windows PostgreSQL already uses 5432 → container Postgres is mapped to host **5433**.
+3. **Place data licences (Phase 1) — decision: import both, as planned.**
+   - **Foursquare OS Places:** Apache 2.0 (commercial use OK) → keep the NOTICE / attribution. Download is gated on Hugging Face (needs Sangram's login + accepting terms).
+   - **OpenStreetMap:** ODbL → credit "© OpenStreetMap contributors" + state data is under ODbL. Mixing OSM with other POIs in one `places` table = a *derivative database* → if publicly used, the **places data** must be offered under ODbL (share-alike). Ratings/reviews are a separate data type and stay ours. Accepted for v1: credits on `/about`, places dump offered on request.
+4. **Dish catalog (Phase 1):** draft in `08_dish_catalog_draft.md`, waiting for review.
