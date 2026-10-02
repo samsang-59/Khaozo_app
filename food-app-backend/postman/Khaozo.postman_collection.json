@@ -20,6 +20,18 @@
     {
       "key": "placeId",
       "value": "1"
+    },
+    {
+      "key": "menuItemId",
+      "value": "1"
+    },
+    {
+      "key": "ratingId",
+      "value": "1"
+    },
+    {
+      "key": "reviewId",
+      "value": "1"
     }
   ],
   "item": [
@@ -720,6 +732,318 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 4 — Contributions",
+      "description": "Log in first. Photo requests: choose 1–3 image files for the \"photos\" field.",
+      "item": [
+        {
+          "name": "Dish page",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/menu-items/{{menuItemId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Ratings of a dish",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/menu-items/{{menuItemId}}/ratings",
+            "header": []
+          }
+        },
+        {
+          "name": "Rate a dish (10-second)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/menu-items/{{menuItemId}}/ratings",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 5,\n  \"wouldOrderAgain\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Rate again within 30 days → 409",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/menu-items/{{menuItemId}}/ratings",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 3,\n  \"wouldOrderAgain\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Edit rating",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/ratings/{{ratingId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spice\": \"spicy\",\n  \"reviewText\": \"Great dum flavour\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Add photos to rating",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/ratings/{{ratingId}}/photos",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Review a place (+ Good for tags)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/places/{{placeId}}/reviews",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 4,\n  \"noise\": \"quiet\",\n  \"wifi\": true,\n  \"plugPoints\": true,\n  \"tagIds\": [\n    1\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Edit review",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/reviews/{{reviewId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Reviews of a place",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}/reviews",
+            "header": []
+          }
+        },
+        {
+          "name": "Photos of a place",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}/photos",
+            "header": []
+          }
+        },
+        {
+          "name": "My journal",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/journal",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "My stats (all time)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/stats?period=all",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "My stats (this month)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/stats?period=month",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "My contributions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/contributions",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Wishlist",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/wishlist",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Save a dish to wishlist",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/me/wishlist",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"standardDishId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Notes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/notes",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Add a private note",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/me/notes",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placeId\": 1,\n  \"text\": \"Ask for less oil\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Public journal of user 1",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/1/journal",
+            "header": []
+          }
+        },
+        {
+          "name": "Delete rating",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/ratings/{{ratingId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
         }
       ]
     }

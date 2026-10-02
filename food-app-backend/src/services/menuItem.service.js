@@ -1,9 +1,11 @@
-// menuItemService — add a menu item (details + AI summary job come in Phases 5–6).
+// menuItemService — add a menu item, dish page, ratings list (AI summary job comes in Phase 6).
 import * as placeRepo from '../repositories/place.repo.js';
 import * as dishRepo from '../repositories/dish.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
+import * as ratingRepo from '../repositories/rating.repo.js';
 import * as dishMatcher from './helpers/dishMatcher.js';
+import { page } from '../utils/pagination.js';
 import { ok, fail } from '../utils/result.js';
 
 const MEAT_OR_FISH = new Set(['Chicken', 'Mutton', 'Fish', 'Prawn', 'Crab']);
@@ -83,4 +85,29 @@ export const addMenuItem = async (placeId, userId, input) => {
   });
   const dish = await dishRepo.findById(standardDishId);
   return ok({ ...item, standardDish: { id: dish.id, name: dish.name, status: dish.status } });
+};
+
+// GET /menu-items/:id — dish page (stats / label / typical spice join in with Phase 5)
+export const details = async (menuItemId, userId = null) => {
+  const item = await menuItemRepo.findById(menuItemId);
+  if (!item || item.status !== 'active' || item.placeDeletedAt) return fail('MENU_ITEM_NOT_FOUND');
+  const data = {
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    place: { id: item.placeId, name: item.placeName, status: item.placeStatus },
+    standardDish: { id: item.standardDishId, name: item.standardDishName, diet: item.diet, category: item.category, cuisine: item.cuisine },
+    aiSummary: item.aiSummary,
+    stats: null,
+  };
+  if (userId) data.myRating = await ratingRepo.findCurrent(userId, menuItemId);
+  return ok(data);
+};
+
+// GET /menu-items/:id/ratings
+export const ratings = async (menuItemId, { limit, cursor }) => {
+  const item = await menuItemRepo.findById(menuItemId);
+  if (!item || item.placeDeletedAt) return fail('MENU_ITEM_NOT_FOUND');
+  const rows = await ratingRepo.listForMenuItem(menuItemId, { limit, cursor });
+  return ok(page(rows, limit, (r) => ({ t: r.createdAt, id: r.id })));
 };

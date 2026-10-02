@@ -44,6 +44,25 @@ export const REASONS = Object.freeze({
   DISH_NEEDS_CONFIRMATION: { status: 409, message: 'Is this one of these dishes?' },
   DISH_DETAILS_REQUIRED: { status: 400, message: 'New dish — please add its category, cuisine and veg / non-veg.' },
   DIET_INGREDIENT_MISMATCH: { status: 400, message: 'Veg / non-veg does not match the main ingredient.' },
+
+  // Contributions (Phase 4)
+  MENU_ITEM_NOT_FOUND: { status: 404, message: 'Dish not found on this menu.' },
+  RATING_NOT_FOUND: { status: 404, message: 'Rating not found.' },
+  RATING_TOO_SOON: { status: 409, message: 'You rated this dish recently — edit that rating instead.' },
+  RATING_NOT_CURRENT: { status: 409, message: 'Only your latest rating can be edited.' },
+  REVIEW_NOT_FOUND: { status: 404, message: 'Review not found.' },
+  REVIEW_TOO_SOON: { status: 409, message: 'You reviewed this place recently — edit that review instead.' },
+  REVIEW_NOT_CURRENT: { status: 409, message: 'Only your latest review can be edited.' },
+  TAG_NOT_FOUND: { status: 400, message: 'One of the tags does not exist.' },
+  PHOTO_NOT_FOUND: { status: 404, message: 'Photo not found.' },
+  NO_PHOTOS: { status: 400, message: 'Choose at least one photo.' },
+  NOT_AN_IMAGE: { status: 400, message: 'Only images (JPG, PNG, WebP, HEIC) can be uploaded.' },
+  PHOTO_TOO_LARGE: { status: 400, message: 'Each photo must be 5 MB or smaller.' },
+  TOO_MANY_PHOTOS: { status: 400, message: 'Up to 3 photos per rating, review or place.' },
+  ALREADY_IN_WISHLIST: { status: 409, message: 'Already in your wishlist.' },
+  WISHLIST_ITEM_NOT_FOUND: { status: 404, message: 'Wishlist item not found.' },
+  NOTE_NOT_FOUND: { status: 404, message: 'Note not found.' },
+  JOURNAL_PRIVATE: { status: 403, message: 'This journal is private.' },
 });
 
 export const getReason = (reason) => REASONS[reason] ?? REASONS.INTERNAL_ERROR;

@@ -34,3 +34,21 @@ export const create = async ({ placeId, standardDishId, name, price, addedBy }) 
   );
   return toCamel(rows[0]);
 };
+
+// Menu item + its place and standard dish (dish page, rating checks)
+export const findById = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT m.id, m.name, m.price, m.status, m.ai_summary, m.summary_updated_at, m.created_at,
+            m.place_id, p.name AS place_name, p.status AS place_status, p.deleted_at AS place_deleted_at,
+            m.standard_dish_id, d.name AS standard_dish_name, d.diet, d.status AS standard_dish_status,
+            c.name AS category, cu.name AS cuisine
+     FROM menu_items m
+     JOIN places p ON p.id = m.place_id
+     JOIN standard_dishes d ON d.id = m.standard_dish_id
+     JOIN dish_categories c ON c.id = d.category_id
+     JOIN cuisines cu ON cu.id = d.cuisine_id
+     WHERE m.id = $1`,
+    [id],
+  );
+  return toCamel(rows[0]) ?? null;
+};

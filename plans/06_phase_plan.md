@@ -101,3 +101,12 @@ Items marked "verify at setup time" above, now checked:
 - **Reports:** one pending report per user + place + reason. `suggestedChange` shapes: `{lat,lng}` / `{hours:[…]}` / `{text}`.
 - **Menu items** (`POST /places/:id/menu-items`, built here because dishMatcher is): exact match → auto-link; similar → 409 "Is this X?" with candidates, and a confirmed spelling becomes an alias; no match → new standard dish `pending_review` (needs category, cuisine, diet; diet checked against the main ingredient). `GET /dishes/:id/best` needs ranking → Phase 5.
 - Redis client connects lazily (first command), so importing a module never opens a socket.
+
+## Phase 4 notes (2 Oct 2026)
+- **Re-rate / re-review rule:** a second rating of the same dish (or review of the same place) inside `rerate_after_days` → 409 `RATING_TOO_SOON` / `REVIEW_TOO_SOON` with the id to edit (frontend opens edit mode). After that → new current row, old one kept as history. Only the current one can be edited.
+- **Delete** (own rating / review) is a hard delete; its photos are removed from Cloudinary first. Admin removal (soft delete) comes in Phase 8.
+- **Photos:** multipart field `photos`; JPG / PNG / WebP / HEIC; Cloudinary shrinks to ≤ 1600 px with automatic quality. Place photos can only be added by the person who added the place (photos have no uploader column, so ownership comes from the parent). Uploads that would exceed 3 are rolled back on Cloudinary.
+- **Wishlist "Tried ✅":** set when the user rates the saved menu item or any menu item of the saved standard dish (saving a place is not marked).
+- **Journal:** a card = same place, each entry ≤ `journal_gap_hours` after the previous one at that place. **My Stats:** places tried, dishes tried, top cuisine, favourite dish (highest average stars), per-dish comparison (same standard dish rated at 2+ places, latest rating per place); "This month" = calendar month in IST.
+- **Public journal** (`/users/:id/journal`): only when `journal_visibility = public`; shows name + avatar, timeline, all-time stats — never email.
+- Route files: one per module (menuItems, ratings, reviews, photos, journal, wishlist, notes).

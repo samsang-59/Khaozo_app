@@ -46,3 +46,9 @@ export const setRoleByEmail = async (email, role) => {
   );
   return toCamel(rows[0]) ?? null;
 };
+
+// Public journal header (only name + avatar are ever shown to others)
+export const findPublicById = async (id) => {
+  const { rows } = await pool.query('SELECT id, name, avatar_url, journal_visibility FROM users WHERE id = $1', [id]);
+  return toCamel(rows[0]) ?? null;
+};
