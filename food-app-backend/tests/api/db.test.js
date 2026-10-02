@@ -22,6 +22,12 @@ describe('db.js', () => {
     expect(rows[0].n).toBe(2);
   });
 
+  test('BIGINT[] comes back as numbers too', async () => {
+    const { rows } = await pool.query(`SELECT ARRAY[1, 5, NULL]::bigint[] AS ids, '{}'::bigint[] AS empty`);
+    expect(rows[0].ids).toEqual([1, 5, null]);
+    expect(rows[0].empty).toEqual([]);
+  });
+
   describe('withTransaction', () => {
     beforeAll(async () => {
       await pool.query('CREATE TABLE IF NOT EXISTS _tx_test (id BIGINT PRIMARY KEY)');

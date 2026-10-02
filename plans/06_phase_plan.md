@@ -85,3 +85,10 @@ Items marked "verify at setup time" above, now checked:
 5. **Imported places start `verified`** (OSM / Foursquare are established datasets). Only **user-added** places start `unverified` and need confirmation weights ≥ `place_verify_threshold` (5).
 6. **Area pins:** 73 (not ~100) — OSM has no reliable points for more Bhubaneswar localities; admin can add more later.
 7. **First OSM import (dev DB):** 130 OSM elements → 126 places (4 merged as duplicates).
+8. **Foursquare import (dev DB, 2 Oct 2026):** release `dt=2026-09-15` → 6,024 Bhubaneswar rows → 830 food places → 791 inserted, 39 merged with OSM. Total 917 places (634 restaurants, 139 cafés, 59 sweet shops, 46 bakeries, 27 street stalls, 12 dhabas).
+
+## Phase 2 notes (2 Oct 2026)
+- **Quiz → learned blend:** the plan says "few ratings → trust quiz, many → trust learned" without a number. Implemented as a linear blend reaching 100 % learned at **20 rated dishes** (`BLEND_FULL_AT_RATINGS` in tasteProfileService). Edited fields store the user's value in `<field>_learned` and set `<field>_locked`.
+- **optionalAuth:** no token → guest; a token that is present but invalid/expired → 401 (so the frontend refreshes instead of silently dropping "Match %").
+- **PATCH /me** accepts `name` and `journalVisibility` only. **DELETE /me** comes with account deletion in Phase 8.
+- BIGINT[] results (e.g. `array_agg(id)`) are also parsed as numbers (db.js).

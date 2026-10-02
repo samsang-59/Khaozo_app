@@ -9,6 +9,9 @@ const schema = z.object({
   TEST_DATABASE_URL: z.string().min(1).optional(),
   REDIS_URL: z.string().min(1),
   TEST_REDIS_URL: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  JWT_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  ADMIN_EMAIL: z.string().email().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -32,4 +35,7 @@ export const env = Object.freeze({
   // Tests always run against the separate test DB (food_app_test) and Redis DB
   databaseUrl: isTest ? raw.TEST_DATABASE_URL : raw.DATABASE_URL,
   redisUrl: isTest ? raw.TEST_REDIS_URL : raw.REDIS_URL,
+  googleClientId: raw.GOOGLE_CLIENT_ID,
+  jwtSecret: raw.JWT_SECRET,
+  adminEmail: raw.ADMIN_EMAIL,
 });

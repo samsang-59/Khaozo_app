@@ -5,7 +5,18 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "googleIdToken",
+      "value": "paste the ID token from /dev/google-login"
+    }
   ],
   "item": [
     {
@@ -13,7 +24,10 @@
       "item": [
         {
           "name": "Health",
-          "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          },
           "event": [
             {
               "listen": "test",
@@ -32,7 +46,10 @@
         },
         {
           "name": "Unknown route → 404",
-          "request": { "method": "GET", "url": "{{baseUrl}}/does-not-exist" },
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/does-not-exist"
+          },
           "event": [
             {
               "listen": "test",
@@ -43,6 +60,252 @@
                   "  pm.expect(pm.response.json().error.code).to.eql('ROUTE_NOT_FOUND');",
                   "});"
                 ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 — Auth & Me",
+      "description": "Get an ID token from http://localhost:3000/dev/google-login, paste it into the googleIdToken variable, then run in order. Postman keeps the refresh cookie (path /api/v1/auth).",
+      "item": [
+        {
+          "name": "Login with Google",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/google",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{googleIdToken}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.success && b.data && b.data.accessToken) pm.collectionVariables.set('accessToken', b.data.accessToken);",
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh (cookie)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.success && b.data && b.data.accessToken) pm.collectionVariables.set('accessToken', b.data.accessToken);",
+                  "pm.test('200 + rotated', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /me",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/me",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"journalVisibility\": \"public\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET taste profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/taste-profile",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT taste quiz",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/me/taste-profile",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diet\": \"non_veg\",\n  \"spice\": 3,\n  \"sweet\": 2,\n  \"budget\": 2,\n  \"cuisineIds\": [\n    1\n  ],\n  \"avoidIds\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH taste profile (edit + lock)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/me/taste-profile",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spice\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (this device)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh after logout → 401",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout all devices",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout-all",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": []
               }
             }
           ]

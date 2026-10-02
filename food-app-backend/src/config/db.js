@@ -4,6 +4,10 @@ import { env } from './env.js';
 // BIGINT (int8, OID 20) comes back as text by default ("42") → return numbers.
 // Safe: we'll never exceed Number.MAX_SAFE_INTEGER rows. Also makes COUNT(*) a number.
 pg.types.setTypeParser(pg.types.builtins.INT8, (value) => Number(value));
+// Same for BIGINT[] (OID 1016, e.g. array_agg(id)) — otherwise ["1", "5"].
+const INT8_ARRAY_OID = 1016;
+const parseTextArray = pg.types.getTypeParser(INT8_ARRAY_OID);
+pg.types.setTypeParser(INT8_ARRAY_OID, (value) => parseTextArray(value).map((v) => (v === null ? null : Number(v))));
 
 export const pool = new pg.Pool({
   connectionString: env.databaseUrl,

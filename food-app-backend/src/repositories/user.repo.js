@@ -1,0 +1,48 @@
+// userRepo — users table (+ deleteAccount across all tables in Phase 8).
+import { pool, withTransaction } from '../config/db.js';
+import { toCamel } from '../utils/caseMapper.js';
+
+const COLUMNS = `id, name, email, google_id, avatar_url, role, trust_score, journal_visibility, created_at, updated_at`;
+
+export const findById = async (id) => {
+  const { rows } = await pool.query(`SELECT ${COLUMNS} FROM users WHERE id = $1`, [id]);
+  return toCamel(rows[0]) ?? null;
+};
+
+export const findByGoogleId = async (googleId) => {
+  const { rows } = await pool.query(`SELECT ${COLUMNS} FROM users WHERE google_id = $1`, [googleId]);
+  return toCamel(rows[0]) ?? null;
+};
+
+// New user + empty taste profile, together.
+export const createWithTasteProfile = async ({ name, email, googleId, avatarUrl }) =>
+  withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `INSERT INTO users (name, email, google_id, avatar_url) VALUES ($1, $2, $3, $4) RETURNING ${COLUMNS}`,
+      [name, email, googleId, avatarUrl],
+    );
+    await client.query('INSERT INTO taste_profiles (user_id) VALUES ($1)', [rows[0].id]);
+    return toCamel(rows[0]);
+  });
+
+// fields: { name?, journalVisibility? } — only the given ones change.
+export const updateProfile = async (id, { name, journalVisibility }) => {
+  const { rows } = await pool.query(
+    `UPDATE users
+     SET name = COALESCE($2, name),
+         journal_visibility = COALESCE($3, journal_visibility),
+         updated_at = now()
+     WHERE id = $1
+     RETURNING ${COLUMNS}`,
+    [id, name ?? null, journalVisibility ?? null],
+  );
+  return toCamel(rows[0]) ?? null;
+};
+
+export const setRoleByEmail = async (email, role) => {
+  const { rows } = await pool.query(
+    `UPDATE users SET role = $2, updated_at = now() WHERE lower(email) = lower($1) RETURNING ${COLUMNS}`,
+    [email, role],
+  );
+  return toCamel(rows[0]) ?? null;
+};

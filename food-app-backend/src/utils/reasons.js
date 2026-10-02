@@ -11,6 +11,17 @@ export const REASONS = Object.freeze({
   RATE_LIMITED: { status: 429, message: 'Slow down a bit and try again shortly.' },
   INTERNAL_ERROR: { status: 500, message: 'Something went wrong on our side.' },
   SERVICE_UNAVAILABLE: { status: 503, message: 'Service temporarily unavailable.' },
+
+  // Auth (Phase 2) — every session problem is a 401 so the frontend logs in again
+  GOOGLE_TOKEN_INVALID: { status: 401, message: 'Google sign-in failed. Please try again.' },
+  SESSION_INVALID: { status: 401, message: 'Your session has ended. Please sign in again.' },
+  SESSION_REUSED: { status: 401, message: 'For your safety you were signed out on all devices. Please sign in again.' },
+
+  // Me / taste profile
+  USER_NOT_FOUND: { status: 404, message: 'User not found.' },
+  TASTE_PROFILE_NOT_FOUND: { status: 404, message: 'Taste profile not found.' },
+  CUISINE_NOT_FOUND: { status: 400, message: 'One of the cuisines does not exist.' },
+  INGREDIENT_NOT_FOUND: { status: 400, message: 'One of the ingredients does not exist.' },
 });
 
 export const getReason = (reason) => REASONS[reason] ?? REASONS.INTERNAL_ERROR;

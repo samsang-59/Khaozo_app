@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khaozo — dev login</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    button { margin: .25rem .25rem .25rem 0; padding: .4rem .8rem; }
+    pre { background: #f4f4f4; padding: .75rem; white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Khaozo — dev login (Phase 2 test page)</h1>
+  <p>Development only. Sign in → the backend creates/finds the user and sets the refresh cookie.</p>
+
+  <div id="g_id_onload" data-client_id="__GOOGLE_CLIENT_ID__" data-callback="onGoogleCredential"></div>
+  <div class="g_id_signin" data-type="standard"></div>
+
+  <p>
+    <button onclick="call('POST', '/api/v1/auth/refresh')">Refresh</button>
+    <button onclick="call('GET', '/api/v1/me', true)">GET /me</button>
+    <button onclick="call('GET', '/api/v1/me/taste-profile', true)">GET taste profile</button>
+    <button onclick="call('POST', '/api/v1/auth/logout', true)">Logout</button>
+    <button onclick="call('POST', '/api/v1/auth/logout-all', true)">Logout all</button>
+  </p>
+
+  <h3>Google ID token</h3>
+  <pre id="idToken">–</pre>
+  <h3>Last response</h3>
+  <pre id="out">–</pre>
+
+  <script>
+    let accessToken = null;
+    const show = (data) => { document.getElementById('out').textContent = JSON.stringify(data, null, 2); };
+
+    async function onGoogleCredential(response) {
+      document.getElementById('idToken').textContent = response.credential;
+      const res = await fetch('/api/v1/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential }),
+      });
+      const body = await res.json();
+      if (body.success) accessToken = body.data.accessToken;
+      show({ status: res.status, ...body });
+    }
+
+    async function call(method, url, withAuth) {
+      const headers = withAuth && accessToken ? { Authorization: 'Bearer ' + accessToken } : {};
+      const res = await fetch(url, { method, headers });
+      const body = await res.json();
+      if (body.success && body.data && body.data.accessToken) accessToken = body.data.accessToken;
+      show({ status: res.status, ...body });
+    }
+  </script>
+</body>
+</html>
