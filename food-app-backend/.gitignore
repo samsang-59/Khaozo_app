@@ -3,3 +3,5 @@ node_modules/
 coverage/
 *.log
 .DS_Store
+# downloaded place data (Foursquare export)
+*.ndjson
