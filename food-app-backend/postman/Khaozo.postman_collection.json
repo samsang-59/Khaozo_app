@@ -36,6 +36,14 @@
     {
       "key": "standardDishId",
       "value": "1"
+    },
+    {
+      "key": "groupCode",
+      "value": "ABC234"
+    },
+    {
+      "key": "guestPass",
+      "value": ""
     }
   ],
   "item": [
@@ -1153,6 +1161,109 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/search?q=biryani%20near%20KIIT&showAll=true",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 7 — Group mode (HTTP part)",
+      "description": "Live actions are Socket.IO events (group:join, group:set_preferences, group:set_location, group:start_suggestions, group:vote, group:finish, group:leave → group:state / group:suggestions / group:result / group:error). Connect with io(url, { auth: { token } }) using an access token or a guest pass.",
+      "item": [
+        {
+          "name": "Create group (logged in)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/groups",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Create group as guest",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/groups",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chotu\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Join as guest (get guest pass)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/groups/{{groupCode}}/join",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Join (logged in)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/groups/{{groupCode}}/join",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Peek group",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/groups/{{groupCode}}",
+            "header": []
+          }
+        },
+        {
+          "name": "My past groups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/groups",
             "header": [
               {
                 "key": "Authorization",

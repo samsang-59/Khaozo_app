@@ -134,3 +134,15 @@ Items marked "verify at setup time" above, now checked:
 - **Rate limits:** global `api` on every route except `/health`; `search`, `auth` (per IP), `contribute` (ratings, reviews, photos, reports — per user/hour), `addPlace` (per user/day). Off in the test app except in the rate-limit tests.
 - **Jobs:** `dishes.embed` (daily + right after the worker starts), `review.embed` (after a review with text), `summary.refresh` (after a rating with text; first summary once labelled, then every `summary_refresh_every` new text reviews). Prompts never contain names, emails or notes.
 - Tests never call real AI (keys ignored when NODE_ENV=test; AI tests mock fetch / the adapter).
+
+## Phase 7 notes (2 Oct 2026)
+- **Migration 012** (config): `group_max_members` 10 (plan), `group_suggestions` 5 (plan: 3–5), `group_creator_grace_seconds` **60** (ours: how long a creator may be offline before handover).
+- **Create:** `POST /groups` is 🌐 — logged in, or a guest with a display name (gets a guest pass). Join: logged in → straight in; guest → name → guest pass for that one group. Guest passes are issued by authService in the controller (groupService never calls another feature service).
+- **Statuses:** `joining` (lobby, preferences) → `choosing` (suggestions being computed) → `voting` → `done`.
+- **Live state** in Redis `group:<code>` (expires after `group_expiry_hours`); every change is read-modify-write under a short per-group Redis lock (two votes at the same instant never overwrite each other). Snapshots carry names, ready / connected / voted flags, suggestions and vote counts — never members' preferences or emails.
+- **Suggestions are place-level:** diet (place `diet_type`), budget (place `price_level`, same 1–4 scale) and favourite cuisines (place cuisines). Strict = place removed; preference = lower rank; unknown place data counts 0.7 and never removes a place. Spice and foods-to-avoid have no place-level data, so they don't filter suggestions in v1. Places serving both veg and non-veg get +0.05 when the group mixes diets. Radius 3 km → 6 km if fewer than 3. Ranking = search weights with the group fit as the taste part.
+- **Midpoint** = PostGIS `ST_Centroid` of the locations members shared with their preferences.
+- **Winner:** most votes; tie → higher score; no votes → best suggestion; the creator can end early or override. Saved to `group_sessions` (+ logged-in members, `guest_count`) only when a winner is picked.
+- **Leave:** vote removed; creator leaving → next member by join order; last person out → live group deleted (nothing saved). Disconnect (phone died) → offline; creator still offline after the grace period → handover. Reconnect → re-join → fresh snapshot.
+- Every socket event has an ack `{ ok, error }`; failures also emit `group:error`. Socket event limit 5/s per connection (config).
+- Live check on dev data: 3 clients (1 user + 2 guests) joined, voted (with a re-vote), winner saved to history.

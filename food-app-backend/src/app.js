@@ -15,6 +15,7 @@ import journalRoutes from './routes/journal.routes.js';
 import wishlistRoutes from './routes/wishlist.routes.js';
 import notesRoutes from './routes/notes.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import groupsRoutes from './routes/groups.routes.js';
 import devRoutes from './routes/dev.routes.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
@@ -40,6 +41,7 @@ export const createApp = ({ rateLimits = !env.isTest } = {}) => {
   api.use(dishesRoutes);
   api.use(metaRoutes);
   api.use(searchRoutes);
+  api.use(groupsRoutes);
   api.use(menuItemsRoutes);
   api.use(ratingsRoutes);
   api.use(reviewsRoutes);

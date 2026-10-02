@@ -131,3 +131,27 @@ export const logoutAll = async ({ userId }) => {
 
 // Nightly job: delete expired refresh-token sessions
 export const cleanupExpiredSessions = async () => ok({ deleted: await sessionRepo.deleteExpired() });
+
+// ---- Guest pass (group mode) ---------------------------------------------------------
+// One per guest person: JWT { type: 'guest', guestId, groupCode, name }, 4 h.
+// Valid only for that one group — requireAuth rejects it everywhere else.
+export const GUEST_PASS_TTL_SECONDS = 4 * 60 * 60;
+
+export const issueGuestPass = ({ groupCode, guestId, name }) => {
+  const token = jwt.sign({ type: 'guest', guestId, groupCode, name }, env.jwtSecret, {
+    algorithm: 'HS256',
+    expiresIn: GUEST_PASS_TTL_SECONDS,
+  });
+  return token;
+};
+
+// → { guestId, groupCode, name } or null
+export const verifyGuestPass = (token) => {
+  try {
+    const p = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
+    if (p.type !== 'guest' || !p.guestId || !p.groupCode) return null;
+    return { guestId: p.guestId, groupCode: p.groupCode, name: p.name };
+  } catch {
+    return null;
+  }
+};

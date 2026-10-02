@@ -63,6 +63,23 @@ export const REASONS = Object.freeze({
   WISHLIST_ITEM_NOT_FOUND: { status: 404, message: 'Wishlist item not found.' },
   NOTE_NOT_FOUND: { status: 404, message: 'Note not found.' },
   JOURNAL_PRIVATE: { status: 403, message: 'This journal is private.' },
+
+  // Group mode (Phase 7)
+  GUEST_NAME_REQUIRED: { status: 400, message: 'Enter a name so your friends know who you are.' },
+  GROUP_NOT_FOUND: { status: 404, message: 'This group has ended or the code is wrong.' },
+  GROUP_ENDED: { status: 409, message: 'This group has ended.' },
+  GROUP_FULL: { status: 409, message: 'This group is full (10 people max).' },
+  NOT_A_MEMBER: { status: 403, message: 'Join the group first.' },
+  GUEST_PASS_OTHER_GROUP: { status: 403, message: 'This guest pass is for a different group.' },
+  GUEST_HAS_NO_PROFILE: { status: 400, message: 'Sign in to use your taste profile, or choose for this outing.' },
+  NOT_CREATOR: { status: 403, message: 'Only the creator can do this.' },
+  GROUP_NOT_JOINING: { status: 409, message: 'Suggestions are already out.' },
+  GROUP_NOT_VOTING: { status: 409, message: 'Voting is not open.' },
+  NOT_ENOUGH_READY: { status: 409, message: 'At least 2 people need to be ready.' },
+  LOCATION_REQUIRED: { status: 409, message: 'Pick a spot or the midpoint first.' },
+  MIDPOINT_NEEDS_LOCATIONS: { status: 409, message: 'Nobody shared a location yet — pick a spot instead.' },
+  NO_SUGGESTIONS: { status: 409, message: 'No places found nearby — try another spot.' },
+  NOT_A_SUGGESTION: { status: 400, message: 'That place is not one of the suggestions.' },
 });
 
 export const getReason = (reason) => REASONS[reason] ?? REASONS.INTERNAL_ERROR;

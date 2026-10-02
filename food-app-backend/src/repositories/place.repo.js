@@ -222,7 +222,8 @@ export const findCandidates = async (f) => {
     COALESCE(ps.tag_ids, '{}') AS tag_ids, ps.avg_stars AS place_avg_stars, COALESCE(ps.review_count, 0) AS place_review_count,
     ${openNowSql(`${at}::timestamptz`)} AS open_now,
     EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id) AS has_hours,
-    ${vibe} AS vibe_similarity`;
+    ${vibe} AS vibe_similarity,
+    COALESCE((SELECT array_agg(pc.cuisine_id) FROM place_cuisines pc WHERE pc.place_id = p.id), '{}') AS cuisine_ids`;
 
   let sql;
   if (f.dishIds?.length) {
@@ -263,4 +264,15 @@ export const findCandidates = async (f) => {
   }
   const { rows } = await pool.query(sql, params);
   return rowsToCamel(rows);
+};
+
+// Group "fair midpoint": PostGIS centroid of the members' locations ([{ lat, lng }])
+export const centroid = async (points) => {
+  const { rows } = await pool.query(
+    `SELECT ST_Y(c) AS lat, ST_X(c) AS lng FROM (
+       SELECT ST_Centroid(ST_Collect(ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326))) AS c
+       FROM unnest($1::float[], $2::float[]) AS p(lat, lng)) x`,
+    [points.map((p) => p.lat), points.map((p) => p.lng)],
+  );
+  return rows[0];
 };
