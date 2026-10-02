@@ -1,7 +1,7 @@
 services:
   postgres:
     build: ./docker/postgres
-    image: khaozo-postgres:17-3.5-pgvector
+    image: khaozo-postgres:17-postgis-pgvector
     environment:
       POSTGRES_USER: khaozo
       POSTGRES_PASSWORD: khaozo

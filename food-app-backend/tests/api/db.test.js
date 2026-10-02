@@ -9,6 +9,13 @@ describe('db.js', () => {
     expect(rows[0].name).toBe('food_app_test');
   });
 
+  test('custom image provides postgis, vector and pg_trgm', async () => {
+    const { rows } = await pool.query(
+      `SELECT name FROM pg_available_extensions WHERE name IN ('postgis', 'vector', 'pg_trgm') ORDER BY name`,
+    );
+    expect(rows.map((r) => r.name)).toEqual(['pg_trgm', 'postgis', 'vector']);
+  });
+
   test('BIGINT comes back as a number, not text', async () => {
     const { rows } = await pool.query('SELECT 42::bigint AS id, COUNT(*) AS n FROM (VALUES (1), (2)) v(x)');
     expect(rows[0].id).toBe(42);

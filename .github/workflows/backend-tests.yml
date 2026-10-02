@@ -17,13 +17,17 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       TEST_REDIS_URL: redis://localhost:6379/1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Same docker-compose as local (custom PostGIS + pgvector image, Redis)
       - name: Start Postgres + Redis
         run: docker compose up -d --build --wait
 
-      - uses: actions/setup-node@v4
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs
+
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
