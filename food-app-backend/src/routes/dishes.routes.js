@@ -8,6 +8,6 @@ const router = Router();
 
 router.get('/dishes/match', validate(v.matchDish), dishesController.match);                           // 🌐
 router.post('/places/:id/menu-items', requireAuth, validate(v.addMenuItem), dishesController.addMenuItem); // 🔐
-// GET /dishes/:id/best (best places for a dish) needs ranking → Phase 5
+router.get('/dishes/:id/best', validate(v.bestForDish), dishesController.best);                        // 🌐
 
 export default router;

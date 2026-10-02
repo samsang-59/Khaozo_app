@@ -1,11 +1,12 @@
 // ratingService — rate a dish (30-day rule, is_current history), edit, delete, mark wishlist tried.
-// Background jobs (stats refresh, summary, taste learning, auto tags) are queued in Phase 5.
+// Background jobs are queued only after the transaction has committed.
 import * as ratingRepo from '../repositories/rating.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
 import * as wishlistRepo from '../repositories/wishlist.repo.js';
 import * as photoRepo from '../repositories/photo.repo.js';
 import * as configService from './helpers/config.js';
 import * as storageService from './helpers/storage.js';
+import * as jobQueue from './helpers/jobQueue.js';
 import { ok, fail } from '../utils/result.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -33,8 +34,10 @@ export const create = async ({ userId, menuItemId, ...fields }) => {
     }
   }
 
-  const rating = await ratingRepo.replaceCurrent(userId, menuItemId, fields);
+  const rating = await ratingRepo.replaceCurrent(userId, menuItemId, fields); // committed here
   await wishlistRepo.markTried(userId, { menuItemId, standardDishId: item.standardDishId });
+  await jobQueue.add(jobQueue.JOBS.LEARN_TASTE, { userId });
+  await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'rating', id: rating.id });
   return ok(rating);
 };
 
@@ -50,7 +53,9 @@ export const update = async (ratingId, userId, fields) => {
   const { rating, error } = await owned(ratingId, userId);
   if (error) return fail(error);
   if (!rating.isCurrent) return fail('RATING_NOT_CURRENT');
-  return ok(await ratingRepo.update(ratingId, fields));
+  const updated = await ratingRepo.update(ratingId, fields);
+  await jobQueue.add(jobQueue.JOBS.LEARN_TASTE, { userId });
+  return ok(updated);
 };
 
 // DELETE /ratings/:id — removes the rating and its photos (Cloudinary files first)

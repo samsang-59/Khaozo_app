@@ -4,6 +4,7 @@ import * as dishRepo from '../repositories/dish.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import * as ratingRepo from '../repositories/rating.repo.js';
+import * as statsRepo from '../repositories/stats.repo.js';
 import * as dishMatcher from './helpers/dishMatcher.js';
 import { page } from '../utils/pagination.js';
 import { ok, fail } from '../utils/result.js';
@@ -87,7 +88,7 @@ export const addMenuItem = async (placeId, userId, input) => {
   return ok({ ...item, standardDish: { id: dish.id, name: dish.name, status: dish.status } });
 };
 
-// GET /menu-items/:id — dish page (stats / label / typical spice join in with Phase 5)
+// GET /menu-items/:id — dish page (stats, label, typical spice; + your rating)
 export const details = async (menuItemId, userId = null) => {
   const item = await menuItemRepo.findById(menuItemId);
   if (!item || item.status !== 'active' || item.placeDeletedAt) return fail('MENU_ITEM_NOT_FOUND');
@@ -98,7 +99,7 @@ export const details = async (menuItemId, userId = null) => {
     place: { id: item.placeId, name: item.placeName, status: item.placeStatus },
     standardDish: { id: item.standardDishId, name: item.standardDishName, diet: item.diet, category: item.category, cuisine: item.cuisine },
     aiSummary: item.aiSummary,
-    stats: null,
+    stats: await statsRepo.forMenuItem(menuItemId),
   };
   if (userId) data.myRating = await ratingRepo.findCurrent(userId, menuItemId);
   return ok(data);

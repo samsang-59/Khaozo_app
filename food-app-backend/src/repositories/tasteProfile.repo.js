@@ -72,3 +72,21 @@ export const saveEdits = async (userId, { diet, spice, sweet, oiliness, budget, 
     await replaceLists(client, userId, { cuisineIds, avoidIds });
     return findWith(client, userId);
   });
+
+// Learning job: write learned values, but never touch a locked field
+// (the user's own edit wins permanently). null = no signal → keep the old value.
+export const saveLearned = async (userId, { spice, sweet, oiliness, budget, ratingsUsed }) => {
+  const { rows } = await pool.query(
+    `UPDATE taste_profiles SET
+       spice_learned    = CASE WHEN spice_locked    THEN spice_learned    ELSE COALESCE($2, spice_learned) END,
+       sweet_learned    = CASE WHEN sweet_locked    THEN sweet_learned    ELSE COALESCE($3, sweet_learned) END,
+       oiliness_learned = CASE WHEN oiliness_locked THEN oiliness_learned ELSE COALESCE($4, oiliness_learned) END,
+       budget_learned   = CASE WHEN budget_locked   THEN budget_learned   ELSE COALESCE($5, budget_learned) END,
+       ratings_used = $6,
+       updated_at = now()
+     WHERE user_id = $1
+     RETURNING user_id`,
+    [userId, spice, sweet, oiliness, budget, ratingsUsed],
+  );
+  return rows.length > 0;
+};

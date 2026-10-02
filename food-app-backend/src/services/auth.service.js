@@ -128,3 +128,6 @@ export const logoutAll = async ({ userId }) => {
   const revoked = await sessionRepo.revokeAllForUser(userId);
   return ok({ revoked });
 };
+
+// Nightly job: delete expired refresh-token sessions
+export const cleanupExpiredSessions = async () => ok({ deleted: await sessionRepo.deleteExpired() });

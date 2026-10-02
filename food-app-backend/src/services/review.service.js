@@ -1,11 +1,12 @@
 // reviewService — place review + "Good for" tag votes (user), edit, delete, public list.
-// Auto tag votes (code rules) + review embeddings are background jobs in Phases 5–6.
+// Auto tag votes (code rules) are a background job queued after commit; review embeddings come in Phase 6.
 import * as reviewRepo from '../repositories/review.repo.js';
 import * as placeRepo from '../repositories/place.repo.js';
 import * as photoRepo from '../repositories/photo.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import * as configService from './helpers/config.js';
 import * as storageService from './helpers/storage.js';
+import * as jobQueue from './helpers/jobQueue.js';
 import { page } from '../utils/pagination.js';
 import { ok, fail } from '../utils/result.js';
 
@@ -35,7 +36,8 @@ export const create = async ({ userId, placeId, tagIds, ...fields }) => {
     }
   }
 
-  const review = await reviewRepo.createWithTagVotes(userId, placeId, fields, tagIds && [...new Set(tagIds)]);
+  const review = await reviewRepo.createWithTagVotes(userId, placeId, fields, tagIds && [...new Set(tagIds)]); // committed
+  await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'review', id: review.id });
   return ok({ ...review, tagIds: await reviewRepo.userTagIds(userId, placeId) });
 };
 
@@ -54,6 +56,7 @@ export const update = async (reviewId, userId, { tagIds, ...fields }) => {
   const tagProblem = await checkTags(tagIds);
   if (tagProblem) return fail(tagProblem);
   const updated = await reviewRepo.updateWithTagVotes(review, fields, tagIds && [...new Set(tagIds)]);
+  await jobQueue.add(jobQueue.JOBS.AUTO_TAGS, { kind: 'review', id: review.id });
   return ok({ ...updated, tagIds: await reviewRepo.userTagIds(userId, review.placeId) });
 };
 

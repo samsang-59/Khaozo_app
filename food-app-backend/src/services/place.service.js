@@ -1,6 +1,7 @@
 // placeService — list / near me, place page, menu, add place (duplicate check → 409), hours.
 import * as placeRepo from '../repositories/place.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
+import * as statsRepo from '../repositories/stats.repo.js';
 import * as confirmationRepo from '../repositories/confirmation.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import * as cacheRepo from '../repositories/redis/cache.repo.js';
@@ -12,6 +13,9 @@ import { ok, fail } from '../utils/result.js';
 
 export const DEFAULT_RADIUS_M = 3000;
 export const DUPLICATE_RADIUS_M = 50;
+// Place page shows the top 3 Must order + up to 2 Mixed reviews dishes (brainstorm 4.7)
+const MUST_ORDER_SHOWN = 3;
+const MIXED_SHOWN = 2;
 const PLACE_CACHE_TTL_SECONDS = 5 * 60;
 export const placeCacheKey = (id) => `place:${id}`;
 
@@ -59,10 +63,12 @@ const loadPublicDetails = async (placeId) => {
   if (cached) return cached;
   const row = await placeRepo.findById(placeId);
   if (!row || row.deletedAt) return null;
-  const [hours, sums, threshold] = await Promise.all([
+  const [hours, sums, threshold, stats, labelled] = await Promise.all([
     placeRepo.findHours(placeId),
     confirmationRepo.sumWeights([placeId]),
     configService.get('place_verify_threshold'),
+    statsRepo.forPlace(placeId),
+    statsRepo.labelledForPlace(placeId, { mustOrder: MUST_ORDER_SHOWN, mixed: MIXED_SHOWN }),
   ]);
   const details = {
     ...toListItem(row, hours),
@@ -73,7 +79,9 @@ const loadPublicDetails = async (placeId) => {
     cuisines: row.cuisineList,
     hours,
     verification: row.status === 'unverified' ? { confirmations: sums[placeId] ?? 0, threshold } : null,
-    stats: null, // ratings, facilities, tags — from place_stats once it exists (Phase 5)
+    stats, // place_stats: average stars, facilities (majority answer), tags with enough votes
+    mustOrder: labelled.filter((d) => d.label === 'must_order'),
+    mixedReviews: labelled.filter((d) => d.label === 'mixed_reviews'),
   };
   delete details.opening;
   delete details.distanceM;
@@ -99,7 +107,8 @@ export const details = async (placeId, userId = null, at = new Date()) => {
 export const menu = async (placeId) => {
   const row = await placeRepo.findById(placeId);
   if (!row || row.deletedAt) return fail('PLACE_NOT_FOUND');
-  return ok(await menuItemRepo.listByPlace(placeId));
+  const [items, stats] = await Promise.all([menuItemRepo.listByPlace(placeId), statsRepo.forPlaceMenu(placeId)]);
+  return ok(items.map((i) => ({ ...i, stats: stats[i.id] ?? null })));
 };
 
 // POST /places — duplicate check first (similar name within 50 m) unless confirmNew.

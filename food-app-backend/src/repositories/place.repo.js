@@ -177,3 +177,13 @@ export const findAddedByUser = async (userId) => {
   );
   return rowsToCamel(rows);
 };
+
+// Trust job: places each user added that got verified → { userId: count }
+export const verifiedCountsByAdder = async () => {
+  const { rows } = await pool.query(
+    `SELECT added_by, COUNT(*)::int AS n FROM places
+     WHERE source = 'user' AND status = 'verified' AND added_by IS NOT NULL AND deleted_at IS NULL
+     GROUP BY added_by`,
+  );
+  return Object.fromEntries(rows.map((r) => [r.added_by, r.n]));
+};

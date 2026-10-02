@@ -43,6 +43,11 @@ const migrate = (direction) =>
   });
 
 describe('migrations', () => {
+  test('materialized views + weights view exist', async () => {
+    const { rows } = await pool.query(`SELECT matviewname FROM pg_matviews WHERE schemaname = 'public' ORDER BY 1`);
+    expect(rows.map((r) => r.matviewname)).toEqual(['menu_item_stats', 'place_stats']);
+  });
+
   test('fresh test DB has all 27 tables', async () => {
     const tables = await listTables();
     expect(tables).toHaveLength(27);
@@ -66,6 +71,7 @@ describe('migrations', () => {
     const config = await pool.query(`SELECT key, value FROM config_settings ORDER BY key`);
     const byKey = Object.fromEntries(config.rows.map((r) => [r.key, r.value]));
     expect(byKey).toEqual({
+      bayes_prior: { mean: 3.5, weight: 5 },
       group_expiry_hours: 4,
       journal_gap_hours: 3,
       min_ratings_for_label: 5,
@@ -78,6 +84,7 @@ describe('migrations', () => {
       tag_min_votes: 3,
       trust_weights: { new: 0.5, normal: 1.0, trusted: 2.0 },
       trusted_min_score: 2.0,
+      trust_rules: { agreeWithin: 1.0, farOff: 2.5, agreeBonus: 0.05, farPenalty: 0.2, verifiedPlaceBonus: 0.1, min: 0.1, max: 3.0 },
     });
   });
 

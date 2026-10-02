@@ -110,3 +110,15 @@ Items marked "verify at setup time" above, now checked:
 - **Journal:** a card = same place, each entry ≤ `journal_gap_hours` after the previous one at that place. **My Stats:** places tried, dishes tried, top cuisine, favourite dish (highest average stars), per-dish comparison (same standard dish rated at 2+ places, latest rating per place); "This month" = calendar month in IST.
 - **Public journal** (`/users/:id/journal`): only when `journal_visibility = public`; shows name + avatar, timeline, all-time stats — never email.
 - Route files: one per module (menuItems, ratings, reviews, photos, journal, wishlist, notes).
+
+## Phase 5 notes (2 Oct 2026)
+- **Migration 010** = materialized views `menu_item_stats`, `place_stats` (+ plain view `contribution_weights`). All ranking maths in SQL, rules read from `config_settings` at refresh.
+- **Bayesian prior** (`bayes_prior`, new config): mean **3.5**, weight **5**. A prior equal to the global mean would let one 5★ beat 80 × 4.6★ (the plan's own example), so a fixed neutral-ish prior is used.
+- **Rating / review weight = current trust:** `trust_weights[level] × min(trust_score, 1)` (trusted users get the full 2.0). A falling trust score shrinks all of that user's old ratings; anonymised rows count as normal.
+- **Trust score** (`trust_rules`, new config, nightly 02:30 IST): `1 + 0.05 × ratings within 1★ of the crowd − 0.2 × ratings ≥ 2.5★ away + 0.1 × places added that got verified`, clamped 0.1–3.0. Crowd = other current ratings of the same menu item, only when there are ≥ `min_ratings_for_label` of them.
+- **Labels:** need ≥ `min_ratings_for_label` ratings; use the weighted average and weighted "order again" %. Typical spice / sweetness / oiliness = most common answer.
+- **Facilities** = majority answer of current reviews (tie → unknown). Tags shown at ≥ `tag_min_votes` votes (user + auto).
+- **Auto tags (code rules):** Work = quiet + Wi-Fi + plug points (plan); Date = vibe ≥ 4 + looks ≥ 4 + quiet/moderate (brainstorm). Meal time from rating time (IST): Breakfast 7–11 (plan); ours: Lunch 12–16, Evening snacks 16–19, Dinner 19–23, Late night 23–03.
+- **Taste learning** (after each rating): from liked dishes (≥ 4★): spice / sweetness / oiliness averages, budget bucket from price paid (else menu price). Locked fields never change.
+- **Jobs:** one BullMQ queue `khaozo`; `npm run worker`. Schedules: stats every 5 min, trust 02:30 IST, expired sessions 03:00 IST. Jobs are queued after commit; a queue failure never fails the user's request (logged; periodic jobs catch up).
+- **API now shows stats:** place page (`stats`, `mustOrder` top 3, `mixedReviews` up to 2), menu items, dish page; new `GET /dishes/:id/best` (by Bayesian score).

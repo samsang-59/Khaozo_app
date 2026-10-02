@@ -168,3 +168,57 @@ export const journalStats = async (userId, since) => {
   );
   return toCamel(rows[0]);
 };
+
+// ---- Background-job inputs ------------------------------------------------------
+
+// Per user: how many of their current ratings agree with / are far from the rest of the crowd
+// (crowd = other current ratings of the same menu item; only items with ≥ minOthers of them).
+export const trustSignals = async ({ minOthers, agreeWithin, farOff }) => {
+  const { rows } = await pool.query(
+    `WITH cur AS (
+       SELECT user_id, menu_item_id, stars FROM dish_ratings WHERE is_current AND deleted_at IS NULL
+     ), item AS (
+       SELECT menu_item_id, COUNT(*) AS n, SUM(stars) AS total FROM cur GROUP BY menu_item_id
+     ), dev AS (
+       SELECT c.user_id, abs(c.stars - (i.total - c.stars)::float / (i.n - 1)) AS d
+       FROM cur c JOIN item i USING (menu_item_id)
+       WHERE c.user_id IS NOT NULL AND i.n - 1 >= $1
+     )
+     SELECT user_id, COUNT(*) FILTER (WHERE d <= $2)::int AS agree, COUNT(*) FILTER (WHERE d >= $3)::int AS far
+     FROM dev GROUP BY user_id`,
+    [minOthers, agreeWithin, farOff],
+  );
+  return rowsToCamel(rows);
+};
+
+// What a user's liked dishes (stars ≥ likedMinStars) say about their taste.
+// Scales match taste_profiles: spice 1–4 · sweetness 1–3 · oiliness 1–3 · budget 1–4
+// (budget from price paid, else menu price: <₹150 / ₹150–300 / ₹300–600 / ₹600+).
+export const tasteSignals = async (userId, likedMinStars) => {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS ratings_used,
+            AVG(CASE r.spice WHEN 'mild' THEN 1 WHEN 'medium' THEN 2 WHEN 'spicy' THEN 3 WHEN 'very_spicy' THEN 4 END) AS spice,
+            AVG(CASE r.sweetness WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 END) AS sweet,
+            AVG(CASE r.oiliness WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 END) AS oiliness,
+            AVG(CASE WHEN COALESCE(r.price_paid, m.price) IS NULL THEN NULL
+                     WHEN COALESCE(r.price_paid, m.price) < 150 THEN 1
+                     WHEN COALESCE(r.price_paid, m.price) < 300 THEN 2
+                     WHEN COALESCE(r.price_paid, m.price) < 600 THEN 3
+                     ELSE 4 END) AS budget
+     FROM dish_ratings r JOIN menu_items m ON m.id = r.menu_item_id
+     WHERE r.user_id = $1 AND r.deleted_at IS NULL AND r.stars >= $2`,
+    [userId, likedMinStars],
+  );
+  return toCamel(rows[0]);
+};
+
+// For auto meal-time tags
+export const findWithPlace = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT r.id, r.user_id, r.created_at, m.place_id
+     FROM dish_ratings r JOIN menu_items m ON m.id = r.menu_item_id
+     WHERE r.id = $1 AND r.deleted_at IS NULL`,
+    [id],
+  );
+  return toCamel(rows[0]) ?? null;
+};

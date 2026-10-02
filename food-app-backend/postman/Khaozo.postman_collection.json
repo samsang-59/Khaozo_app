@@ -32,6 +32,10 @@
     {
       "key": "reviewId",
       "value": "1"
+    },
+    {
+      "key": "standardDishId",
+      "value": "1"
     }
   ],
   "item": [
@@ -1043,6 +1047,47 @@
                 "value": "Bearer {{accessToken}}"
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 5 — Ranking",
+      "description": "Run `npm run worker` so stats refresh every 5 minutes.",
+      "item": [
+        {
+          "name": "Best places for a dish",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dishes/{{standardDishId}}/best"
+          }
+        },
+        {
+          "name": "Best places for a dish near Saheed Nagar",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dishes/{{standardDishId}}/best?lat=20.2887&lng=85.8488"
+          }
+        },
+        {
+          "name": "Place page (stats, Must order, Mixed reviews)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}"
+          }
+        },
+        {
+          "name": "Menu with labels",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/places/{{placeId}}/menu"
+          }
+        },
+        {
+          "name": "Dish page with stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/menu-items/{{menuItemId}}"
           }
         }
       ]

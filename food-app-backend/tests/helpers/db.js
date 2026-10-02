@@ -18,6 +18,9 @@ export const resetData = async () => {
   // the config rows too, so delete users (FK sets updated_by to NULL) instead.
   await pool.query('DELETE FROM users');
   await pool.query('ALTER TABLE users ALTER COLUMN id RESTART');
+  // Materialized views keep old rows until refreshed — clear them too (ids restart above)
+  await pool.query('REFRESH MATERIALIZED VIEW menu_item_stats');
+  await pool.query('REFRESH MATERIALIZED VIEW place_stats');
 };
 
 // ---- Fixtures (minimal valid rows) --------------------------------------------

@@ -52,3 +52,17 @@ export const findPublicById = async (id) => {
   const { rows } = await pool.query('SELECT id, name, avatar_url, journal_visibility FROM users WHERE id = $1', [id]);
   return toCamel(rows[0]) ?? null;
 };
+
+// Trust job: set many users' scores at once ([{ userId, trustScore }])
+export const setTrustScores = async (scores) => {
+  if (!scores.length) return 0;
+  const { rowCount } = await pool.query(
+    `UPDATE users u SET trust_score = s.score, updated_at = now()
+     FROM unnest($1::bigint[], $2::float[]) AS s(id, score)
+     WHERE u.id = s.id AND u.trust_score IS DISTINCT FROM s.score`,
+    [scores.map((s) => s.userId), scores.map((s) => s.trustScore)],
+  );
+  return rowCount;
+};
+
+export const allIds = async () => (await pool.query('SELECT id FROM users')).rows.map((r) => r.id);

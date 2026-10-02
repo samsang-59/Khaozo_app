@@ -2,6 +2,7 @@
 import * as tasteProfileRepo from '../repositories/tasteProfile.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import { ok, fail } from '../utils/result.js';
+import * as ratingRepo from '../repositories/rating.repo.js';
 
 // How many rated dishes it takes before learned values fully replace quiz answers.
 // The plan says "few ratings → trust quiz, many → trust learned"; the exact number is ours.
@@ -79,4 +80,17 @@ export const edit = async (userId, edits) => {
   });
   if (!profile) return fail('TASTE_PROFILE_NOT_FOUND');
   return ok(toView(profile));
+};
+
+// ---- Learning job (after a rating) ------------------------------------------------
+
+// "Liked" dishes teach the profile; locked fields are never changed (enforced in the repo too).
+export const LIKED_MIN_STARS = 4;
+
+export const learn = async (userId) => {
+  const s = await ratingRepo.tasteSignals(userId, LIKED_MIN_STARS);
+  const updated = await tasteProfileRepo.saveLearned(userId, {
+    spice: s.spice, sweet: s.sweet, oiliness: s.oiliness, budget: s.budget, ratingsUsed: s.ratingsUsed,
+  });
+  return updated ? ok({ ratingsUsed: s.ratingsUsed }) : fail('TASTE_PROFILE_NOT_FOUND');
 };
