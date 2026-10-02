@@ -1,0 +1,208 @@
+erDiagram
+    users ||--o| taste_profiles : "has"
+    users ||--o{ login_sessions : "logs in"
+    users ||--o{ dish_ratings : "writes"
+    users ||--o{ place_reviews : "writes"
+    users ||--o{ photos : "uploads"
+    users ||--o{ place_reports : "reports"
+    users ||--o{ place_confirmations : "confirms"
+    users ||--o{ place_tag_votes : "votes"
+    users ||--o{ private_notes : "writes"
+    users ||--o{ wishlist_items : "saves"
+    users |o--o{ places : "adds"
+    users ||--o{ group_sessions : "creates"
+    users ||--o{ group_session_members : "joins"
+    users |o--o{ config_settings : "updates"
+
+    areas ||--o{ places : "contains"
+    places ||--o{ opening_hours : "has"
+    places ||--o{ menu_items : "serves"
+    places ||--o{ place_reviews : "gets"
+    places |o--o{ photos : "has"
+    places ||--o{ place_reports : "gets"
+    places ||--o{ place_confirmations : "gets"
+    places ||--o{ place_tag_votes : "gets"
+    places ||--o{ place_cuisines : "offers"
+    cuisines ||--o{ place_cuisines : "offered at"
+    places |o--o{ group_sessions : "won"
+    places |o--o{ private_notes : "about"
+    places |o--o{ wishlist_items : "saved"
+
+    dish_categories ||--o{ standard_dishes : "groups"
+    cuisines ||--o{ standard_dishes : "classifies"
+    main_ingredients |o--o{ standard_dishes : "main in"
+    standard_dishes ||--o{ menu_items : "appears as"
+    standard_dishes |o--o{ wishlist_items : "saved"
+    standard_dishes ||--o{ dish_aliases : "also called"
+
+    menu_items ||--o{ dish_ratings : "rated in"
+    menu_items |o--o{ private_notes : "about"
+    menu_items |o--o{ wishlist_items : "saved"
+    dish_ratings |o--o{ photos : "has"
+    place_reviews |o--o{ photos : "has"
+
+    tags ||--o{ place_tag_votes : "voted as"
+    group_sessions ||--o{ group_session_members : "has"
+
+    taste_profiles ||--o{ taste_profile_cuisines : "likes"
+    cuisines ||--o{ taste_profile_cuisines : "liked in"
+    taste_profiles ||--o{ taste_profile_avoid : "avoids"
+    main_ingredients ||--o{ taste_profile_avoid : "avoided in"
+
+    users {
+        bigint id
+        string name
+        string email
+        string google_id
+        string role
+        float trust_score
+    }
+    taste_profiles {
+        bigint user_id
+        string diet
+        float spice_learned
+        bool spice_locked
+    }
+    login_sessions {
+        bigint id
+        bigint user_id
+        string token_hash
+        bigint replaced_by
+    }
+    areas {
+        bigint id
+        string name
+        point location
+    }
+    places {
+        bigint id
+        bigint area_id
+        bigint added_by
+        string name
+        point location
+        string status
+    }
+    opening_hours {
+        bigint place_id
+        int day
+        time opens_at
+        time closes_at
+    }
+    place_confirmations {
+        bigint place_id
+        bigint confirmed_by
+        float weight
+    }
+    place_reports {
+        bigint id
+        bigint place_id
+        bigint reported_by
+        string reason
+        string status
+    }
+    cuisines {
+        bigint id
+        string name
+    }
+    dish_categories {
+        bigint id
+        string name
+    }
+    main_ingredients {
+        bigint id
+        string name
+    }
+    standard_dishes {
+        bigint id
+        bigint category_id
+        bigint cuisine_id
+        bigint main_ingredient_id
+        string name
+        vector embedding
+    }
+    menu_items {
+        bigint id
+        bigint place_id
+        bigint standard_dish_id
+        string name
+        int price
+    }
+    dish_ratings {
+        bigint id
+        bigint user_id
+        bigint menu_item_id
+        int stars
+        bool is_current
+    }
+    place_reviews {
+        bigint id
+        bigint user_id
+        bigint place_id
+        int stars
+        vector text_embedding
+        bool is_current
+    }
+    photos {
+        bigint id
+        bigint dish_rating_id
+        bigint place_review_id
+        bigint place_id
+        string url
+    }
+    tags {
+        bigint id
+        string name
+        string type
+    }
+    place_tag_votes {
+        bigint place_id
+        bigint tag_id
+        bigint user_id
+        string source
+    }
+    private_notes {
+        bigint id
+        bigint user_id
+        bigint place_id
+        bigint menu_item_id
+        string text
+    }
+    wishlist_items {
+        bigint id
+        bigint user_id
+        bigint place_id
+        bigint menu_item_id
+        bigint standard_dish_id
+    }
+    group_sessions {
+        bigint id
+        string code
+        bigint created_by
+        bigint winning_place_id
+        int guest_count
+    }
+    group_session_members {
+        bigint group_session_id
+        bigint user_id
+    }
+    place_cuisines {
+        bigint place_id
+        bigint cuisine_id
+    }
+    taste_profile_cuisines {
+        bigint user_id
+        bigint cuisine_id
+    }
+    taste_profile_avoid {
+        bigint user_id
+        bigint main_ingredient_id
+    }
+    config_settings {
+        string key
+        string value
+        bigint updated_by
+    }
+    dish_aliases {
+        string alias
+        bigint standard_dish_id
+    }
