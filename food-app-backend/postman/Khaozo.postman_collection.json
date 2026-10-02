@@ -44,6 +44,14 @@
     {
       "key": "guestPass",
       "value": ""
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "access token of an admin (npm run make-admin, then log in again)"
+    },
+    {
+      "key": "reportId",
+      "value": "1"
     }
   ],
   "item": [
@@ -1270,6 +1278,321 @@
                 "value": "Bearer {{accessToken}}"
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 8 — Admin & account deletion",
+      "description": "Admin routes need an access token whose role is admin (set ADMIN_EMAIL, run npm run make-admin, then log in again so the new role is in the token). DELETE /me erases the logged-in account — use a throwaway account.",
+      "item": [
+        {
+          "name": "Reports queue (pending)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/reports?status=pending",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Accept report (uses the reporter's suggestion)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/reports/{{reportId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Accept wrong_location with a corrected pin",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/reports/{{reportId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\",\n  \"change\": {\n    \"lat\": 20.2961,\n    \"lng\": 85.8245\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Accept wrong_info with fixed place details",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/reports/{{reportId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\",\n  \"change\": {\n    \"name\": \"Dalma Family Restaurant\",\n    \"priceLevel\": 2\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Reject report",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/reports/{{reportId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"reject\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unverified places queue",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/places?status=unverified",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Verify place (admin override)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/places/{{placeId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"verify\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Close / delete / restore place",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/places/{{placeId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"close\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pending dishes queue",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/dishes/pending",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Add dish to catalog",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/dishes",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chicken Kurkure Momos\",\n  \"categoryId\": 2,\n  \"cuisineId\": 5,\n  \"diet\": \"non_veg\",\n  \"aliases\": [\n    \"kurkure momo\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve dish (optional fixes)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/dishes/{{standardDishId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Merge dish into another",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/dishes/{{standardDishId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"merge\",\n  \"intoId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove review (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/reviews/{{reviewId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Remove rating (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/ratings/{{ratingId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Config (all settings)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/config",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Edit a setting",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/config",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"place_verify_threshold\",\n  \"value\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete my account (DPDP)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/me",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirm\": \"DELETE\"\n}"
+            }
           }
         }
       ]

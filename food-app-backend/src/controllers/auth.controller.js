@@ -16,7 +16,8 @@ const deviceInfo = (req) => req.get('user-agent')?.slice(0, 200) ?? null;
 const setRefreshCookie = (res, token, expiresAt) =>
   res.cookie(REFRESH_COOKIE, token, { ...cookieOptions, expires: expiresAt });
 
-const clearRefreshCookie = (res) => res.clearCookie(REFRESH_COOKIE, cookieOptions);
+// Also used by DELETE /me (account gone → no session left to refresh)
+export const clearRefreshCookie = (res) => res.clearCookie(REFRESH_COOKIE, cookieOptions);
 
 export const googleLogin = async (req, res) => {
   const result = await authService.loginWithGoogle({ idToken: req.body.idToken, deviceInfo: deviceInfo(req) });

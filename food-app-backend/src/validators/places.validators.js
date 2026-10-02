@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { idParam, idParams, lat, lng, queryBool, pagination, hhmm } from './common.js';
 
-const PLACE_TYPES = ['restaurant', 'cafe', 'dhaba', 'bakery', 'street_stall', 'sweet_shop'];
-const DIET_TYPES = ['pure_veg', 'non_veg', 'both'];
+export const PLACE_TYPES = ['restaurant', 'cafe', 'dhaba', 'bakery', 'street_stall', 'sweet_shop'];
+export const DIET_TYPES = ['pure_veg', 'non_veg', 'both'];
 
 export const listPlaces = {
   query: z
@@ -47,19 +47,21 @@ export const addPlace = {
     .strict(),
 };
 
-const hoursRow = z
+export const hoursRow = z
   .object({ day: z.number().int().min(0).max(6), opensAt: hhmm, closesAt: hhmm })
   .refine((h) => h.opensAt !== h.closesAt, { message: 'opensAt and closesAt must differ' });
+
+export const maxTwoShiftsPerDay = (hours) => {
+  const perDay = {};
+  for (const h of hours) perDay[h.day] = (perDay[h.day] ?? 0) + 1;
+  return Object.values(perDay).every((n) => n <= 2);
+};
 
 export const setHours = {
   params: z.object({ id: idParam }),
   body: z
     .object({ hours: z.array(hoursRow).min(1).max(14) })
-    .refine((b) => {
-      const perDay = {};
-      for (const h of b.hours) perDay[h.day] = (perDay[h.day] ?? 0) + 1;
-      return Object.values(perDay).every((n) => n <= 2);
-    }, { message: 'At most two shifts per day' }),
+    .refine((b) => maxTwoShiftsPerDay(b.hours), { message: 'At most two shifts per day' }),
 };
 
 export const createReport = {

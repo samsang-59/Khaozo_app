@@ -43,3 +43,8 @@ export const tasteEdit = {
     .strict()
     .refine((b) => Object.keys(b).length > 0, { message: 'Nothing to update' }),
 };
+
+// DELETE /me — the frontend asks the user to type DELETE; the API checks it too.
+export const deleteMe = {
+  body: z.object({ confirm: z.literal('DELETE') }).strict(),
+};

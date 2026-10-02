@@ -76,3 +76,11 @@ export const listForPlace = async (placeId, { limit, cursor }) => {
   const rows = await photoRepo.listForPlace(placeId, { limit, cursor });
   return ok(page(rows, limit, (r) => ({ id: r.id })));
 };
+
+// Job: Cloudinary files left over after account deletion (Cloudinary was down at the time).
+// Throws while any file is still there, so BullMQ retries (3 attempts, exponential backoff).
+export const destroyFiles = async (publicIds) => {
+  const failed = await storageService.destroyMany(publicIds);
+  if (failed.length) throw new Error(`Could not delete ${failed.length} photo file(s) from Cloudinary`);
+  return ok({ deleted: publicIds.length });
+};

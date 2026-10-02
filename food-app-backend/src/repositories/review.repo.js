@@ -106,3 +106,13 @@ export const userTagIds = async (userId, placeId) => {
 export const setEmbedding = async (id, vector) => {
   await pool.query('UPDATE place_reviews SET text_embedding = $2::vector WHERE id = $1', [id, vector ? JSON.stringify(vector) : null]);
 };
+
+// Admin removal (soft delete: hidden everywhere, row kept). → { id, placeId } or null.
+export const softDelete = async (id) => {
+  const { rows } = await pool.query(
+    `UPDATE place_reviews SET deleted_at = now(), updated_at = now()
+     WHERE id = $1 AND deleted_at IS NULL RETURNING id, place_id`,
+    [id],
+  );
+  return toCamel(rows[0]) ?? null;
+};

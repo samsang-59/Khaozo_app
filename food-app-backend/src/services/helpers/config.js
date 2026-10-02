@@ -19,5 +19,5 @@ export const get = async (key) => {
   return all[key];
 };
 
-// Called when admin edits config (Phase 8)
+// Called when admin edits config (PATCH /admin/config)
 export const clearCache = () => cacheRepo.del(CONFIG_CACHE_KEY);

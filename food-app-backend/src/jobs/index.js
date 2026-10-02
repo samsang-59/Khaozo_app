@@ -7,6 +7,7 @@ import trust from './trust.job.js';
 import sessionCleanup from './sessionCleanup.job.js';
 import { embedDishes, embedReview } from './embedding.job.js';
 import summary from './summary.job.js';
+import deletePhotos from './deletePhotos.job.js';
 
 export const handlers = {
   [JOBS.REFRESH_STATS]: stats,
@@ -17,6 +18,7 @@ export const handlers = {
   [JOBS.EMBED_DISHES]: embedDishes,
   [JOBS.EMBED_REVIEW]: embedReview,
   [JOBS.SUMMARY]: summary,
+  [JOBS.DELETE_PHOTOS]: deletePhotos,
 };
 
 // Repeating jobs (BullMQ job schedulers, Bhubaneswar time)

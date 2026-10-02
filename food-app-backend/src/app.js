@@ -16,6 +16,7 @@ import wishlistRoutes from './routes/wishlist.routes.js';
 import notesRoutes from './routes/notes.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import groupsRoutes from './routes/groups.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import devRoutes from './routes/dev.routes.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
@@ -49,6 +50,7 @@ export const createApp = ({ rateLimits = !env.isTest } = {}) => {
   api.use(journalRoutes);
   api.use(wishlistRoutes);
   api.use(notesRoutes);
+  api.use(adminRoutes);
   app.use('/api/v1', api);
 
   // Development only: tiny page with the Google button to get an ID token (Phase 2 testing)

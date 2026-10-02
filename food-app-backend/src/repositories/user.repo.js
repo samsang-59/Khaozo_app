@@ -1,4 +1,4 @@
-// userRepo — users table (+ deleteAccount across all tables in Phase 8).
+// userRepo — users table (+ deleteAccount across all tables, one transaction).
 import { pool, withTransaction } from '../config/db.js';
 import { toCamel } from '../utils/caseMapper.js';
 
@@ -66,3 +66,36 @@ export const setTrustScores = async (scores) => {
 };
 
 export const allIds = async () => (await pool.query('SELECT id FROM users')).rows.map((r) => r.id);
+
+// Account deletion (DPDP — real erasure), one transaction:
+//   photos of the user's ratings, reviews and places they added → deleted (public ids returned
+//   so the service removes the files from Cloudinary after commit)
+//   ratings / reviews → text (+ review embedding) cleared; user_id → NULL via the FK; numbers stay
+//   users row → deleted; taste profile, sessions, notes, wishlist, tag votes, confirmations and
+//   group memberships CASCADE; places / dishes / menu items added, reports, groups created → SET NULL
+// Returns null if the user does not exist.
+export const deleteAccount = async (userId) =>
+  withTransaction(async (client) => {
+    // Row lock: a rating being inserted at the same moment waits, then fails its FK check
+    const { rows } = await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+    if (!rows[0]) return null;
+    const photos = await client.query(
+      `DELETE FROM photos
+       WHERE dish_rating_id IN (SELECT id FROM dish_ratings WHERE user_id = $1)
+          OR place_review_id IN (SELECT id FROM place_reviews WHERE user_id = $1)
+          OR place_id IN (SELECT id FROM places WHERE added_by = $1)
+       RETURNING cloudinary_public_id`,
+      [userId],
+    );
+    const ratings = await client.query('UPDATE dish_ratings SET review_text = NULL, updated_at = now() WHERE user_id = $1', [userId]);
+    const reviews = await client.query(
+      'UPDATE place_reviews SET review_text = NULL, text_embedding = NULL, updated_at = now() WHERE user_id = $1',
+      [userId],
+    );
+    await client.query('DELETE FROM users WHERE id = $1', [userId]);
+    return {
+      photoPublicIds: photos.rows.map((r) => r.cloudinary_public_id),
+      ratingsKept: ratings.rowCount,
+      reviewsKept: reviews.rowCount,
+    };
+  });

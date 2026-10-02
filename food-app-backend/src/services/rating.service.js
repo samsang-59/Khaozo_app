@@ -4,6 +4,7 @@ import * as ratingRepo from '../repositories/rating.repo.js';
 import * as menuItemRepo from '../repositories/menuItem.repo.js';
 import * as wishlistRepo from '../repositories/wishlist.repo.js';
 import * as photoRepo from '../repositories/photo.repo.js';
+import * as cacheRepo from '../repositories/redis/cache.repo.js';
 import * as configService from './helpers/config.js';
 import * as storageService from './helpers/storage.js';
 import * as jobQueue from './helpers/jobQueue.js';
@@ -67,4 +68,13 @@ export const remove = async (ratingId, userId) => {
   await storageService.destroyMany(await photoRepo.publicIdsFor('rating', ratingId));
   await ratingRepo.remove(ratingId);
   return ok(null);
+};
+
+// DELETE /admin/ratings/:id — soft delete (hidden everywhere, photos kept, restorable in the DB)
+export const adminRemove = async (ratingId) => {
+  const removed = await ratingRepo.softDelete(ratingId);
+  if (!removed) return fail('RATING_NOT_FOUND');
+  await cacheRepo.del(`place:${removed.placeId}`);
+  await jobQueue.add(jobQueue.JOBS.REFRESH_STATS, {});
+  return ok({ id: removed.id });
 };

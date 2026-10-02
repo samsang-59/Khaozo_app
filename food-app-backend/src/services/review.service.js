@@ -3,6 +3,7 @@
 import * as reviewRepo from '../repositories/review.repo.js';
 import * as placeRepo from '../repositories/place.repo.js';
 import * as photoRepo from '../repositories/photo.repo.js';
+import * as cacheRepo from '../repositories/redis/cache.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import * as configService from './helpers/config.js';
 import * as storageService from './helpers/storage.js';
@@ -92,4 +93,13 @@ export const embedReview = async (reviewId) => {
   if (!vector) return ok({ embedded: false });
   await reviewRepo.setEmbedding(reviewId, vector);
   return ok({ embedded: true });
+};
+
+// DELETE /admin/reviews/:id — soft delete (hidden everywhere, photos kept, restorable in the DB)
+export const adminRemove = async (reviewId) => {
+  const removed = await reviewRepo.softDelete(reviewId);
+  if (!removed) return fail('REVIEW_NOT_FOUND');
+  await cacheRepo.del(`place:${removed.placeId}`);
+  await jobQueue.add(jobQueue.JOBS.REFRESH_STATS, {});
+  return ok({ id: removed.id });
 };

@@ -1,4 +1,4 @@
-// storageService (helper) — Cloudinary upload / delete (used by photoService and, in Phase 8, userService).
+// storageService (helper) — Cloudinary upload / delete (used by photoService and userService).
 // Credentials come from CLOUDINARY_URL in .env (the SDK reads it automatically).
 // Photos are never stored in PostgreSQL — only the URL + public_id.
 import { v2 as cloudinary } from 'cloudinary';
@@ -23,7 +23,9 @@ export const destroy = async (publicId) => {
   await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true });
 };
 
-// Best effort for many files (e.g. after a failed DB write or a deleted rating)
+// Best effort for many files (e.g. after a failed DB write or a deleted rating).
+// Returns the public ids that could not be deleted (account deletion retries them in a job).
 export const destroyMany = async (publicIds) => {
-  await Promise.allSettled(publicIds.map((id) => destroy(id)));
+  const results = await Promise.allSettled(publicIds.map((id) => destroy(id)));
+  return publicIds.filter((_, i) => results[i].status === 'rejected');
 };

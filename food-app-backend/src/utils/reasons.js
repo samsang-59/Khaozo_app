@@ -80,6 +80,18 @@ export const REASONS = Object.freeze({
   MIDPOINT_NEEDS_LOCATIONS: { status: 409, message: 'Nobody shared a location yet — pick a spot instead.' },
   NO_SUGGESTIONS: { status: 409, message: 'No places found nearby — try another spot.' },
   NOT_A_SUGGESTION: { status: 400, message: 'That place is not one of the suggestions.' },
+
+  // Admin (Phase 8)
+  REPORT_NOT_FOUND: { status: 404, message: 'Report not found.' },
+  REPORT_ALREADY_RESOLVED: { status: 409, message: 'This report was already accepted or rejected.' },
+  REPORT_CHANGE_REQUIRED: { status: 400, message: 'Send the corrected details for this report (new pin, hours or place info).' },
+  PLACE_ACTION_NOT_APPLICABLE: { status: 409, message: 'Nothing to change — the place is already like that.' },
+  DISH_NAME_TAKEN: { status: 409, message: 'A dish with this name already exists.' },
+  DISH_NOT_PENDING: { status: 409, message: 'This dish is already approved.' },
+  DISH_MERGE_INTO_SELF: { status: 400, message: 'A dish cannot be merged into itself.' },
+  DISH_MERGE_TARGET_INVALID: { status: 400, message: 'Merge into an approved dish that exists.' },
+  CONFIG_KEY_NOT_FOUND: { status: 404, message: 'Setting not found.' },
+  CONFIG_VALUE_INVALID: { status: 400, message: 'The new value does not fit this setting.' },
 });
 
 export const getReason = (reason) => REASONS[reason] ?? REASONS.INTERNAL_ERROR;

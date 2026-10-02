@@ -276,3 +276,176 @@ export const centroid = async (points) => {
   );
   return rows[0];
 };
+
+// ---- Admin (Phase 8) -------------------------------------------------------------
+// Functions that take `db` run on the pool, or on a transaction client when called
+// from another repo's transaction (reportRepo.resolve applies a report's fix this way).
+
+// Admin queue: unverified (default) / closed / soft-deleted places, oldest first.
+export const listForAdmin = async ({ status, limit, cursor }) => {
+  const where = {
+    unverified: `p.status = 'unverified' AND p.deleted_at IS NULL`,
+    closed: `p.status = 'closed' AND p.deleted_at IS NULL`,
+    deleted: 'p.deleted_at IS NOT NULL',
+  }[status];
+  const params = [limit + 1];
+  let after = '';
+  if (cursor) {
+    params.push(cursor.id);
+    after = 'AND p.id > $2::bigint';
+  }
+  const { rows } = await pool.query(
+    `SELECT p.id, p.name, p.status, p.source, p.place_type, p.address, a.name AS area_name,
+            ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lng,
+            p.added_by, u.name AS added_by_name, p.created_at, p.deleted_at,
+            COALESCE((SELECT SUM(weight) FROM place_confirmations c WHERE c.place_id = p.id), 0)::float AS confirmations,
+            (SELECT COUNT(*) FROM place_reports r WHERE r.place_id = p.id AND r.status = 'pending')::int AS pending_reports
+     FROM places p JOIN areas a ON a.id = p.area_id LEFT JOIN users u ON u.id = p.added_by
+     WHERE ${where} ${after}
+     ORDER BY p.id
+     LIMIT $1`,
+    params,
+  );
+  return rowsToCamel(rows);
+};
+
+// Restore = undo soft delete and re-open a closed place (verified again if it ever was,
+// or came from an import; a never-verified user place goes back to unverified).
+const ADMIN_ACTIONS = {
+  verify: `SET status = 'verified', verified_at = now(), updated_at = now()
+           WHERE id = $1 AND status = 'unverified' AND deleted_at IS NULL`,
+  close: `SET status = 'closed', updated_at = now()
+          WHERE id = $1 AND status <> 'closed' AND deleted_at IS NULL`,
+  delete: `SET deleted_at = now(), updated_at = now()
+           WHERE id = $1 AND deleted_at IS NULL`,
+  restore: `SET deleted_at = NULL, updated_at = now(),
+                status = CASE WHEN status <> 'closed' THEN status
+                              WHEN verified_at IS NOT NULL OR source <> 'user' THEN 'verified'
+                              ELSE 'unverified' END
+            WHERE id = $1 AND (deleted_at IS NOT NULL OR status = 'closed')`,
+};
+
+// → true if the place changed (false: already in that state)
+export const applyAdminAction = async (placeId, action, db = pool) => {
+  const { rowCount } = await db.query(`UPDATE places ${ADMIN_ACTIONS[action]}`, [placeId]);
+  return rowCount === 1;
+};
+
+// Wrong pin fixed → new location and nearest area pin again
+export const updateLocation = async (placeId, { lat, lng }, db = pool) => {
+  await db.query(
+    `UPDATE places SET location = ${point('$3', '$2')},
+            area_id = (SELECT id FROM areas ORDER BY location <-> ${point('$3', '$2')} LIMIT 1),
+            updated_at = now()
+     WHERE id = $1`,
+    [placeId, lat, lng],
+  );
+};
+
+export const replaceHours = async (placeId, hours, db = pool) => {
+  await db.query('DELETE FROM opening_hours WHERE place_id = $1', [placeId]);
+  for (const h of hours) {
+    await db.query(
+      'INSERT INTO opening_hours (place_id, day, opens_at, closes_at) VALUES ($1, $2, $3, $4)',
+      [placeId, h.day, h.opensAt, h.closesAt],
+    );
+  }
+};
+
+const INFO_COLUMNS = { name: 'name', address: 'address', phone: 'phone', placeType: 'place_type', dietType: 'diet_type', priceLevel: 'price_level' };
+
+// fields: any of name / address / phone / placeType / dietType / priceLevel
+export const updateInfo = async (placeId, fields, db = pool) => {
+  const keys = Object.keys(INFO_COLUMNS).filter((k) => fields[k] !== undefined);
+  if (!keys.length) return;
+  await db.query(
+    `UPDATE places SET ${keys.map((k, i) => `${INFO_COLUMNS[k]} = $${i + 2}`).join(', ')}, updated_at = now() WHERE id = $1`,
+    [placeId, ...keys.map((k) => fields[k])],
+  );
+};
+
+// Duplicate report accepted: everything users added about `fromId` moves to `intoId`,
+// then `fromId` is soft-deleted. Must run inside a transaction (db = client).
+//   menu items        → moved; one with the same name already on the target menu is folded into it
+//                       (its ratings / wishlist saves / notes move to the target item, it becomes removed)
+//   ratings / reviews → one current per user: if the user had one at both, the newer stays current
+//   tag votes, wishlist saves → moved unless the user already has the same one on the target
+//   photos, notes, cuisines   → moved / added
+//   hours, phone, address, price, diet → copied only where the target has none
+export const mergeInto = async (fromId, intoId, db) => {
+  await db.query('SELECT id FROM places WHERE id = ANY($1::bigint[]) ORDER BY id FOR UPDATE', [[fromId, intoId]]);
+
+  await db.query(
+    `CREATE TEMP TABLE merge_items ON COMMIT DROP AS
+     SELECT f.id AS from_item, t.id AS to_item
+     FROM menu_items f
+     JOIN LATERAL (SELECT id FROM menu_items t
+                   WHERE t.place_id = $2 AND t.status = 'active' AND lower(t.name) = lower(f.name)
+                   ORDER BY t.id LIMIT 1) t ON true
+     WHERE f.place_id = $1`,
+    [fromId, intoId],
+  );
+  await db.query(
+    `UPDATE dish_ratings r SET is_current = false, updated_at = now()
+     FROM merge_items mi, dish_ratings o
+     WHERE r.is_current AND o.is_current AND r.user_id = o.user_id AND r.id <> o.id
+       AND ((r.menu_item_id = mi.from_item AND o.menu_item_id = mi.to_item)
+         OR (r.menu_item_id = mi.to_item AND o.menu_item_id = mi.from_item))
+       AND (r.created_at, r.id) < (o.created_at, o.id)`,
+  );
+  await db.query('UPDATE dish_ratings r SET menu_item_id = mi.to_item FROM merge_items mi WHERE r.menu_item_id = mi.from_item');
+  await db.query(
+    `UPDATE wishlist_items w SET menu_item_id = mi.to_item FROM merge_items mi
+     WHERE w.menu_item_id = mi.from_item
+       AND NOT EXISTS (SELECT 1 FROM wishlist_items x WHERE x.user_id = w.user_id AND x.menu_item_id = mi.to_item)`,
+  );
+  await db.query('DELETE FROM wishlist_items w USING merge_items mi WHERE w.menu_item_id = mi.from_item');
+  await db.query('UPDATE private_notes n SET menu_item_id = mi.to_item FROM merge_items mi WHERE n.menu_item_id = mi.from_item');
+  await db.query(`UPDATE menu_items SET status = 'removed', updated_at = now() WHERE id IN (SELECT from_item FROM merge_items)`);
+  await db.query('UPDATE menu_items SET place_id = $2, updated_at = now() WHERE place_id = $1', [fromId, intoId]);
+
+  await db.query(
+    `UPDATE place_reviews r SET is_current = false, updated_at = now()
+     FROM place_reviews o
+     WHERE r.is_current AND o.is_current AND r.user_id = o.user_id
+       AND r.place_id = ANY($1::bigint[]) AND o.place_id = ANY($1::bigint[]) AND r.place_id <> o.place_id
+       AND (r.created_at, r.id) < (o.created_at, o.id)`,
+    [[fromId, intoId]],
+  );
+  await db.query('UPDATE place_reviews SET place_id = $2, updated_at = now() WHERE place_id = $1', [fromId, intoId]);
+
+  await db.query(
+    `INSERT INTO place_tag_votes (place_id, tag_id, user_id, source, created_at)
+     SELECT $2, tag_id, user_id, source, created_at FROM place_tag_votes WHERE place_id = $1
+     ON CONFLICT (place_id, tag_id, user_id) DO NOTHING`,
+    [fromId, intoId],
+  );
+  await db.query('DELETE FROM place_tag_votes WHERE place_id = $1', [fromId]);
+
+  await db.query(
+    `UPDATE wishlist_items w SET place_id = $2 WHERE w.place_id = $1
+       AND NOT EXISTS (SELECT 1 FROM wishlist_items x WHERE x.user_id = w.user_id AND x.place_id = $2)`,
+    [fromId, intoId],
+  );
+  await db.query('DELETE FROM wishlist_items WHERE place_id = $1', [fromId]);
+  await db.query('UPDATE private_notes SET place_id = $2 WHERE place_id = $1', [fromId, intoId]);
+  await db.query('UPDATE photos SET place_id = $2 WHERE place_id = $1', [fromId, intoId]);
+  await db.query(
+    'INSERT INTO place_cuisines (place_id, cuisine_id) SELECT $2, cuisine_id FROM place_cuisines WHERE place_id = $1 ON CONFLICT DO NOTHING',
+    [fromId, intoId],
+  );
+  await db.query(
+    `INSERT INTO opening_hours (place_id, day, opens_at, closes_at)
+     SELECT $2, day, opens_at, closes_at FROM opening_hours
+     WHERE place_id = $1 AND NOT EXISTS (SELECT 1 FROM opening_hours WHERE place_id = $2)`,
+    [fromId, intoId],
+  );
+  await db.query(
+    `UPDATE places t SET phone = COALESCE(t.phone, f.phone), address = COALESCE(t.address, f.address),
+            price_level = COALESCE(t.price_level, f.price_level), diet_type = COALESCE(t.diet_type, f.diet_type),
+            updated_at = now()
+     FROM places f WHERE t.id = $2 AND f.id = $1`,
+    [fromId, intoId],
+  );
+  await db.query('UPDATE places SET deleted_at = now(), updated_at = now() WHERE id = $1', [fromId]);
+};

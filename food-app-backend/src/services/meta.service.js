@@ -20,5 +20,5 @@ export const dishCategories = () => cached('dish-categories', () => metaRepo.lis
 export const mainIngredients = () => cached('main-ingredients', () => metaRepo.listNamed('main_ingredients'));
 export const tags = () => cached('tags', metaRepo.listTags);
 
-// Called when admin edits lookup lists (Phase 8)
+// For when admin edits lookup lists (no admin route for that in v1 — lookups change via migrations)
 export const clearCache = () => cacheRepo.delByPrefix('meta:');

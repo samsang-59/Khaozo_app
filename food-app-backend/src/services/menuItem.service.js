@@ -12,17 +12,8 @@ import * as aiAdapter from '../ai/aiAdapter.js';
 import { dishSummarySchema } from '../ai/schemas/dishSummary.js';
 import { dishSummaryPrompt } from '../ai/prompts/dishSummary.js';
 import { page } from '../utils/pagination.js';
+import { dietClash } from '../utils/dishDiet.js';
 import { ok, fail } from '../utils/result.js';
-
-const MEAT_OR_FISH = new Set(['Chicken', 'Mutton', 'Fish', 'Prawn', 'Crab']);
-
-// Code-level sanity (data model Step 7): no "Chicken + veg", no "Egg + veg".
-const dietClash = (ingredientName, diet) => {
-  if (!ingredientName) return false;
-  if (MEAT_OR_FISH.has(ingredientName)) return diet !== 'non_veg';
-  if (ingredientName === 'Egg') return diet === 'veg';
-  return false;
-};
 
 // input: { name, price?, standardDishId?, newDish?: { categoryId, cuisineId, mainIngredientId?, diet } }
 // Dish resolution:

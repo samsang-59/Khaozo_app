@@ -222,3 +222,15 @@ export const findWithPlace = async (id) => {
   );
   return toCamel(rows[0]) ?? null;
 };
+
+// Admin removal (soft delete: hidden everywhere, row kept). → { id, placeId } or null.
+export const softDelete = async (id) => {
+  const { rows } = await pool.query(
+    `UPDATE dish_ratings r SET deleted_at = now(), updated_at = now()
+     FROM menu_items m
+     WHERE r.id = $1 AND r.deleted_at IS NULL AND m.id = r.menu_item_id
+     RETURNING r.id, r.menu_item_id, m.place_id`,
+    [id],
+  );
+  return toCamel(rows[0]) ?? null;
+};

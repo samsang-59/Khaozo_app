@@ -15,6 +15,7 @@ export const JOBS = Object.freeze({
   EMBED_DISHES: 'dishes.embed',
   EMBED_REVIEW: 'review.embed',
   SUMMARY: 'summary.refresh',
+  DELETE_PHOTOS: 'photos.delete',
 });
 
 // BullMQ needs its own connection settings (maxRetriesPerRequest: null).
