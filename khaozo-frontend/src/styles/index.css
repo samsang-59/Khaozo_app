@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+/* Khaozo "Street Sticker" design tokens (design handoff README). Light mode only in v1. */
+@theme {
+  --color-ink: #141210;
+  --color-cream: #fff6e6;
+  --color-saffron: #ff7a1a;
+  --color-green: #1f9d55;
+  --color-amber: #ffc233;
+  --color-card: #ffffff;
+  --color-muted: #4d453d;
+  --color-body: #3d3630;
+  --color-placeholder: #6e655c;
+  --color-inactive: #a39a90;
+  --color-mixed: #fff8e1;
+  --color-notice: #fff1c7;
+  --color-veg-banner: #e4f4ea;
+  --color-nonveg: #c0392b;
+  --color-divider: #e3d3ba;
+  --color-stripe-a: #f5e3c8;
+  --color-stripe-b: #fff0da;
+  --color-scrim: #7d746a;
+  --color-danger: #b42318;
+  --color-skeleton: #f5e3c8;
+  --color-skeleton-2: #fbeedb;
+  --color-star-empty: #c9bba6;
+  --color-map: #f3e6d0;
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-hard-sm: 3px 3px 0 #141210;
+  --shadow-hard: 4px 4px 0 #141210;
+  --shadow-hard-lg: 8px 8px 0 #141210;
+  --shadow-press: 1px 1px 0 #141210;
+  --shadow-hard-saffron: 4px 4px 0 #ff7a1a;
+  --shadow-hard-cream: 3px 3px 0 #fff6e6;
+
+  --breakpoint-lg: 64rem; /* laptop layout ≥ 1024px */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream font-sans text-ink antialiased;
+    font-weight: 500;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  a {
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-saffron);
+    outline-offset: 2px;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-placeholder);
+  }
+}
+
+@layer components {
+  /* Underlined link: ink text, saffron underline (design) */
+  .link {
+    @apply font-bold text-ink underline decoration-saffron decoration-2 underline-offset-2 hover:text-saffron;
+  }
+  .link-plain {
+    @apply font-bold text-ink underline decoration-ink decoration-1 underline-offset-2;
+  }
+  /* Striped photo placeholder */
+  .stripes {
+    background: repeating-linear-gradient(135deg, var(--color-stripe-a) 0 8px, var(--color-stripe-b) 8px 16px);
+  }
+  /* Sticker label: Bricolage 800 uppercase */
+  .sticker-label {
+    @apply font-display font-extrabold uppercase;
+    letter-spacing: 0.02em;
+  }
+  /* Small caps label above fields ("OVERALL *", "SPICE") */
+  .field-label {
+    @apply font-display text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink;
+  }
+  /* "Sticker press" feel for bordered buttons */
+  .press {
+    transition:
+      transform 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+  .press:not(:disabled):active {
+    transform: translate(2px, 2px);
+    box-shadow: var(--shadow-press);
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Leaflet: square saffron pins, bordered map card */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--color-map);
+}
+.kz-pin {
+  width: 22px;
+  height: 22px;
+  background: var(--color-saffron);
+  border: 2px solid var(--color-ink);
+  border-radius: 6px;
+}
+.kz-pin.is-green {
+  background: var(--color-green);
+}
+.kz-pin.is-amber {
+  background: var(--color-amber);
+}
+.kz-pin-label {
+  display: inline-block;
+  white-space: nowrap;
+  background: var(--color-saffron);
+  border: 2px solid var(--color-ink);
+  border-radius: 8px;
+  padding: 3px 9px;
+  font: 800 12px var(--font-display);
+  box-shadow: var(--shadow-hard-sm);
+  transform: translate(-50%, -50%);
+}
+.kz-pin-label.is-white {
+  background: #fff;
+  box-shadow: none;
+}
+.kz-me {
+  width: 16px;
+  height: 16px;
+  background: var(--color-ink);
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--color-ink);
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+.leaflet-div-icon {
+  background: transparent;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+.leaflet-bar {
+  border: 2px solid var(--color-ink) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+.leaflet-bar a {
+  color: var(--color-ink) !important;
+  font-weight: 800;
+}
