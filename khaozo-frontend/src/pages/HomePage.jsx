@@ -46,10 +46,9 @@ function MoodChips({ className }) {
   const navigate = useNavigate();
   return (
     <ChipRow className={className}>
-      {MOOD_CHIPS.map((m, i) => (
+      {MOOD_CHIPS.map((m) => (
         <Chip
           key={m.mood}
-          selected={i === 0}
           className="lg:shadow-none"
           onClick={() => navigate(`/search?q=${encodeURIComponent(m.label)}&mood=${encodeURIComponent(m.mood)}`)}
         >
