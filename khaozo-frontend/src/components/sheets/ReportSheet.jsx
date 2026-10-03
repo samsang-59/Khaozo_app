@@ -56,7 +56,11 @@ export default function ReportSheet({ open, onOpenChange, place }) {
       onOpenChange(false);
       toast.success('Thanks — an admin will check it soon');
     },
-    onError: (err) => (err.code === 'REPORT_ALREADY_PENDING' ? (onOpenChange(false), toast.info(err.message)) : toastError(err)),
+    onError: (err) => {
+      if (err.code !== 'REPORT_ALREADY_PENDING') return toastError(err);
+      onOpenChange(false);
+      toast.info(err.message);
+    },
   });
 
   const canSend = reason && (reason !== 'duplicate' || dupOf);

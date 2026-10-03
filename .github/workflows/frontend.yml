@@ -22,3 +22,58 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+  # Playwright key flows against the real backend (API + Postgres/PostGIS/pgvector + Redis)
+  e2e:
+    needs: unit-and-build
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://khaozo:khaozo@localhost:5433/food_app
+      REDIS_URL: redis://localhost:6379/0
+      GOOGLE_CLIENT_ID: e2e-client-id.apps.googleusercontent.com
+      JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-else-123456
+      PORT: 3000
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            food-app-backend/package-lock.json
+            khaozo-frontend/package-lock.json
+
+      - name: Start Postgres + Redis
+        working-directory: food-app-backend
+        run: docker compose up -d --build --wait
+
+      - name: Backend — install, migrate, seed, start
+        working-directory: food-app-backend
+        run: |
+          npm ci
+          npx node-pg-migrate up -m migrations
+          npm run seed
+          nohup node src/server.js > ../api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/v1/health && break; sleep 1; done
+
+      - name: Frontend — install + browsers
+        working-directory: khaozo-frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Playwright
+        working-directory: khaozo-frontend
+        run: npm run e2e
+
+      - name: API log (on failure)
+        if: failure()
+        run: cat api.log
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: khaozo-frontend/playwright-report
+          retention-days: 7

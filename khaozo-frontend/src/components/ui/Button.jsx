@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn.js';
 
 // primary: saffron + hard shadow · secondary: white, no shadow · dark: ink + cream
 // dashed: "+ More details" · danger: Delete account only · green: WhatsApp / Yes
-export const buttonVariants = cva(
+const variants = cva(
   'press inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-ink font-sans font-extrabold text-ink disabled:opacity-100 select-none',
   {
     variants: {
@@ -29,9 +29,12 @@ export const buttonVariants = cva(
   },
 );
 
+// Merged so Links styled as buttons resolve conflicts too (text-ink vs text-cream, etc.)
+export const buttonVariants = ({ className, ...opts } = {}) => cn(variants(opts), className);
+
 export function Button({ variant, size, block, className, loading, disabled, children, type = 'button', ...props }) {
   return (
-    <button type={type} className={cn(buttonVariants({ variant, size, block }), className)} disabled={disabled || loading} {...props}>
+    <button type={type} className={buttonVariants({ variant, size, block, className })} disabled={disabled || loading} {...props}>
       {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
       {children}
     </button>
