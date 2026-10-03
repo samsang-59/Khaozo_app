@@ -22,9 +22,10 @@ export default function ResultCard({ item, active, onHover, primary = true }) {
       )}
     >
       <div className="p-3 lg:hidden">
-        <Photo className="size-[64px] rounded-xl border-2 border-ink" label="Dish photo" />
+        <Photo src={item.photoUrl} alt="" className="size-[64px] rounded-xl border-2 border-ink" label="Dish photo" />
       </div>
-      <Photo className="hidden w-[180px] shrink-0 border-r-2 border-ink lg:block" label="Dish photo" />
+      {/* the photo fills the column at the card's height (it never makes the card taller) */}
+      <Photo src={item.photoUrl} alt="" className="hidden w-[180px] shrink-0 border-r-2 border-ink lg:block [&>img]:absolute [&>img]:inset-0" label="Dish photo" />
       <div className="flex min-w-0 flex-1 flex-col gap-1 py-3 pr-3 lg:px-5 lg:py-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-[17px] leading-tight font-extrabold tracking-[-0.02em] lg:text-[22px]">{place.name}</h3>
@@ -38,6 +39,7 @@ export default function ResultCard({ item, active, onHover, primary = true }) {
         <p className="text-[13px] leading-[1.45] font-medium text-body lg:text-sm">{reason}</p>
         <div className="flex flex-wrap gap-1.5 pt-0.5">
           <LabelBadge label={menuItem?.stats?.label} />
+          {item.likelyServes && <Badge tone="dashed">Not on the menu yet</Badge>}
           {place.status === 'unverified' && <Badge tone="dashed">Unverified</Badge>}
         </div>
       </div>

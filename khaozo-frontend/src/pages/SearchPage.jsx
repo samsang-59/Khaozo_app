@@ -124,7 +124,11 @@ export default function SearchPage() {
   const dietFiltered = personal?.dietFilter?.diet || personal?.dietFilter?.avoidIds?.length;
   const dishWord = data?.resolved?.dish;
   const spiceWord = (params.get('spice') ?? data?.filters?.spice) ? SPICE_LABEL[params.get('spice') ?? data.filters.spice]?.toLowerCase() : null;
-  const title = data ? `${items.length} ${spiceWord && dishWord ? `${spiceWord} ` : ''}${plural(items.length, dishWord)}` : 'Searching…';
+  // Fallback results (no menu has the dish nearby yet) are places that probably serve it, not dishes
+  const onlyLikely = items.length > 0 && items.every((i) => i.likelyServes);
+  const title = !data ? 'Searching…'
+    : onlyLikely ? `${items.length} ${plural(items.length, 'place')} to try`
+    : `${items.length} ${spiceWord && dishWord ? `${spiceWord} ` : ''}${plural(items.length, dishWord)}`;
   const subtitle = joinMeta(
     data?.resolved?.area ? `near ${data.resolved.area.name}` : null,
     (params.get('maxPrice') ?? data?.filters?.maxPrice) ? `under ${formatPrice(Number(params.get('maxPrice') ?? data.filters.maxPrice))}` : null,

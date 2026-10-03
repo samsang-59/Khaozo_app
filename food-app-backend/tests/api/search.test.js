@@ -228,6 +228,81 @@ describe('cache', () => {
   });
 });
 
+describe('card photos', () => {
+  afterAll(() => pool.query('DELETE FROM photos'));
+
+  test("a dish result shows that dish's newest rating photo; a place result its gallery photo; else null", async () => {
+    const ratingOf = async (placeId) => (await pool.query(
+      'SELECT r.id FROM dish_ratings r JOIN menu_items m ON m.id = r.menu_item_id WHERE m.place_id = $1 ORDER BY r.id LIMIT 1', [placeId])).rows[0].id;
+    const addPhoto = (url, ratingId) => pool.query(`INSERT INTO photos (url, cloudinary_public_id, dish_rating_id) VALUES ($1, 'x', $2)`, [url, ratingId]);
+    await addPhoto('https://img/house-old.jpg', await ratingOf(p.house.id));
+    await addPhoto('https://img/house-new.jpg', await ratingOf(p.house.id));
+    await addPhoto('https://img/cafe.jpg', await ratingOf(p.vegCafe.id));
+
+    aiFilters = { dish: 'biryani', area: 'KIIT' };
+    const dish = await search('biryani near KIIT');
+    const photo = (res, name) => res.body.data.items.find((i) => i.place.name === name).photoUrl;
+    expect(photo(dish, 'Biryani House')).toBe('https://img/house-new.jpg');
+    expect(photo(dish, 'Spice Hub')).toBeNull();
+
+    aiFilters = { mood: 'Work', area: 'KIIT' };
+    const place = await search('place to work near KIIT');
+    expect(photo(place, 'Green Leaf Cafe')).toBe('https://img/cafe.jpg');
+  });
+});
+
+describe('fallback: dish known, but no menu has it nearby yet', () => {
+  let extra;
+  beforeAll(async () => {
+    const kiitArea = (await pool.query(`SELECT id FROM areas WHERE name = 'KIIT'`)).rows[0].id;
+    const mk = (name, m) => insertPlace({ areaId: kiitArea, name, lat: north(m), lng: KIIT.lng });
+    extra = {
+      momoPoint: await mk('Momo Point', 800),
+      wok: await mk('Dragon Wok', 200),
+      vegMomo: await mk('Pure Veg Momos', 400),
+      farMomo: await mk('Far Momos', 9000),
+    };
+    await pool.query(`UPDATE places SET diet_type = 'pure_veg' WHERE id = $1`, [extra.vegMomo.id]);
+    await pool.query('INSERT INTO place_cuisines (place_id, cuisine_id) VALUES ($1, $2)', [extra.wok.id, await lookupId('cuisines', 'Chinese')]);
+  });
+  afterAll(async () => {
+    const ids = Object.values(extra).map((x) => x.id);
+    await pool.query('DELETE FROM place_cuisines WHERE place_id = ANY($1::bigint[])', [ids]);
+    await pool.query('DELETE FROM places WHERE id = ANY($1::bigint[])', [ids]);
+  });
+
+  test('suggests places that probably serve it: name match first, then cuisine; with a note', async () => {
+    aiFilters = { dish: 'momos', area: 'KIIT' };
+    const res = await search('momos near KIIT');
+    // name matches (nearest first), then the cuisine match; Far Momos is 9 km away
+    expect(names(res)).toEqual(['Pure Veg Momos', 'Momo Point', 'Dragon Wok']);
+    expect(res.body.data.items.every((i) => i.likelyServes && i.menuItem === null)).toBe(true);
+    expect(res.body.data.items[0].reason).toMatch(/^Probably serves momos/);
+    expect(res.body.data.relaxed).toContain('No one has added momos at places near here yet — these places probably serve it');
+  });
+
+  test('a non-veg dish never suggests a pure-veg place', async () => {
+    aiFilters = { dish: 'chicken momos', area: 'KIIT' };
+    const res = await search('chicken momos near KIIT');
+    expect(names(res)).toContain('Momo Point');
+    expect(names(res)).not.toContain('Pure Veg Momos');
+  });
+
+  test('not used when the dish is on a menu nearby but other filters rule it out', async () => {
+    aiFilters = { dish: 'biryani', maxPrice: 50, area: 'KIIT' };
+    const res = await search('biryani under 50 near KIIT');
+    expect(res.body.data.items).toEqual([]);
+    expect(res.body.data.relaxed.some((n) => n.startsWith('No one has added'))).toBe(false);
+  });
+
+  test('never used when a real menu match exists', async () => {
+    aiFilters = { dish: 'biryani', area: 'KIIT' };
+    const res = await search('biryani near KIIT');
+    expect(res.body.data.items.length).toBeGreaterThan(0);
+    expect(res.body.data.items.every((i) => i.likelyServes === false && i.menuItem)).toBe(true);
+  });
+});
+
 test('validation: q required; lat needs lng', async () => {
   expect((await request(app).get(`${api}/search`)).status).toBe(400);
   expect((await search('biryani', { lat: 20.3 })).status).toBe(400);

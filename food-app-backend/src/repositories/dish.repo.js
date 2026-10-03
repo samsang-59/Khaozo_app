@@ -210,3 +210,9 @@ export const mergeInto = async (fromId, intoId) =>
     await client.query('DELETE FROM standard_dishes WHERE id = $1', [fromId]); // leftover wishlist duplicates cascade
     return { menuItemsMoved: items.rowCount, aliasesMoved: aliases.rowCount };
   });
+
+// Search fallback: names, categories and cuisines of the resolved dishes
+export const findManyByIds = async (ids) => {
+  const { rows } = await pool.query(`SELECT ${DISH_COLUMNS} FROM standard_dishes d ${DISH_JOINS} WHERE d.id = ANY($1::bigint[])`, [ids]);
+  return rowsToCamel(rows);
+};

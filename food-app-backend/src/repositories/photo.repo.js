@@ -81,3 +81,40 @@ export const listForPlace = async (placeId, { limit, cursor }) => {
   );
   return rowsToCamel(rows);
 };
+
+// Search cards: one cover photo per result, newest first.
+//   menu item → its current ratings' photos · place → its gallery (same set as listForPlace)
+// → { menuItems: { id: url }, places: { id: url } }
+export const coverPhotos = async ({ menuItemIds = [], placeIds = [] }) => {
+  const [items, places] = await Promise.all([
+    menuItemIds.length
+      ? pool.query(
+        `SELECT DISTINCT ON (r.menu_item_id) r.menu_item_id AS id, ph.url
+         FROM photos ph JOIN dish_ratings r ON r.id = ph.dish_rating_id
+         WHERE r.menu_item_id = ANY($1::bigint[]) AND r.is_current AND r.deleted_at IS NULL
+         ORDER BY r.menu_item_id, ph.id DESC`,
+        [menuItemIds],
+      )
+      : { rows: [] },
+    placeIds.length
+      ? pool.query(
+        `SELECT DISTINCT ON (pid) pid AS id, url FROM (
+           SELECT ph.place_id AS pid, ph.id, ph.url FROM photos ph WHERE ph.place_id = ANY($1::bigint[])
+           UNION ALL
+           SELECT v.place_id, ph.id, ph.url FROM photos ph JOIN place_reviews v ON v.id = ph.place_review_id
+           WHERE v.place_id = ANY($1::bigint[]) AND v.is_current AND v.deleted_at IS NULL
+           UNION ALL
+           SELECT m.place_id, ph.id, ph.url FROM photos ph JOIN dish_ratings r ON r.id = ph.dish_rating_id
+           JOIN menu_items m ON m.id = r.menu_item_id
+           WHERE m.place_id = ANY($1::bigint[]) AND r.is_current AND r.deleted_at IS NULL
+         ) g
+         ORDER BY pid, id DESC`,
+        [placeIds],
+      )
+      : { rows: [] },
+  ]);
+  return {
+    menuItems: Object.fromEntries(items.rows.map((r) => [r.id, r.url])),
+    places: Object.fromEntries(places.rows.map((r) => [r.id, r.url])),
+  };
+};

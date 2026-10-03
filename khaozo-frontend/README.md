@@ -7,6 +7,8 @@ Plans: `../plans/05_frontend_design.md` (pages, flows, components, state, folder
 ## Run locally
 
 1. Start the backend first (`../food-app-backend`: `docker compose up -d`, `npm run dev`; `npm run worker` for jobs).
+   Optional: `npm run seed:demo` there fills your local DB with demo menus, ratings and reviews
+   (local only; `npm run seed:demo -- --remove` takes them out again).
 2. Frontend:
    ```bash
    cp .env.example .env.local   # set VITE_GOOGLE_CLIENT_ID (same client ID as the backend)

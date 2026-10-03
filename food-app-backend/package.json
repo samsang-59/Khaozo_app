@@ -15,6 +15,7 @@
     "migrate": "node-pg-migrate up -m migrations --envPath .env",
     "migrate:down": "node-pg-migrate down -m migrations --envPath .env",
     "seed": "node scripts/seed.js",
+    "seed:demo": "node scripts/seed-demo.js",
     "make-admin": "node scripts/make-admin.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
   },

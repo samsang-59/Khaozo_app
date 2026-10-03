@@ -13,6 +13,7 @@ import * as dishRepo from '../repositories/dish.repo.js';
 import * as metaRepo from '../repositories/meta.repo.js';
 import * as tagVoteRepo from '../repositories/tagVote.repo.js';
 import * as tasteProfileRepo from '../repositories/tasteProfile.repo.js';
+import * as photoRepo from '../repositories/photo.repo.js';
 import * as cacheRepo from '../repositories/redis/cache.repo.js';
 import * as configService from './helpers/config.js';
 import * as dishMatcher from './helpers/dishMatcher.js';
@@ -111,6 +112,32 @@ const findWithRelax = async (base, cfg, tags) => {
   return { rows, notes, final: f };
 };
 
+// Fallback when a known dish has no menu item nearby yet (new city data has places, not menus):
+// places that probably serve it — the dish / category word in the name ("… Biryani House"), or a
+// matching cuisine. A non-veg / egg dish never suggests a pure-veg place. Only runs when no menu
+// nearby has the dish at all — too pricey / closed / untagged menus keep the normal (empty) answer.
+const likelyServing = async (dish, f) => {
+  const onAnyMenu = await placeRepo.findCandidates({ ...f, maxPrice: null, openNow: false, tagIds: [], limit: 1 });
+  if (onAnyMenu.length) return [];
+  const dishes = await dishRepo.findManyByIds(dish.dishIds);
+  if (!dishes.length) return [];
+  // "Momos" also matches "Momo Point"
+  const words = dishes.flatMap((d) => [d.name, d.category]).map((t) => t.toLowerCase());
+  const nameTerms = [...new Set(words.flatMap((t) => (t.length > 4 && t.endsWith('s') ? [t, t.slice(0, -1)] : [t])))];
+  const rows = await placeRepo.findCandidates({
+    ...f,
+    dishIds: null,
+    maxPrice: null,
+    likely: {
+      nameTerms,
+      cuisineIds: [...new Set(dishes.map((d) => d.cuisineId))],
+      excludePureVeg: dishes.every((d) => d.diet !== 'veg'),
+    },
+  });
+  const what = dish.dishLabel.toLowerCase();
+  return rows.map((r) => ({ ...r, likelyServes: true, likelyReason: `Probably serves ${what}` }));
+};
+
 const nonPersonal = async ({ q, overrides, centre, at }) => {
   const all = await configService.getAll();
   const cfg = {
@@ -146,7 +173,11 @@ const nonPersonal = async ({ q, overrides, centre, at }) => {
     tagIds: tags.map((t) => t.id),
     vibeVector,
   };
-  const { rows, notes, final } = await findWithRelax(base, cfg, tags);
+  let { rows, notes, final } = await findWithRelax(base, cfg, tags);
+  if (dish.dishIds && rows.length === 0) {
+    rows = await likelyServing(dish, final);
+    if (rows.length) notes.push(`No one has added ${dish.dishLabel.toLowerCase()} at places near here yet — these places probably serve it`);
+  }
   if (dish.unresolved) notes.unshift(`We don't know "${dish.unresolved}" yet — showing places instead`);
 
   // Non-personal score parts (distance + taste are finished in step 7)
@@ -228,11 +259,17 @@ export const search = async ({ q, lat, lng, overrides = {}, showAll = false, use
     if (tasteMatch != null) parts.taste = tasteMatch;
     scored.push({ c: { ...c, distanceM: dist }, matchPct, score: ranking.combine(parts, weights) });
   }
-  scored.sort((a, b) => b.score - a.score);
+  // Fallback places (likelyServes): a name match ("Biryani House") before a cuisine-only match
+  scored.sort((a, b) => Number(Boolean(b.c.likelyNameMatch)) - Number(Boolean(a.c.likelyNameMatch)) || b.score - a.score);
   const top = scored.slice(0, RESULTS_SHOWN);
 
   // Step 8: reasons (code template) + opening status
   const hours = await placeRepo.findHoursForPlaces(top.map((s) => s.c.placeId));
+  // Card photo: a dish result shows that dish (never another dish of the place); a place result its gallery
+  const covers = await photoRepo.coverPhotos({
+    menuItemIds: top.filter((s) => s.c.menuItemId).map((s) => s.c.menuItemId),
+    placeIds: top.filter((s) => !s.c.menuItemId).map((s) => s.c.placeId),
+  });
   const tagNames = new Set(base.resolved.tags);
   const allTags = tagNames.size ? await metaRepo.listTags() : [];
   const items = top.map(({ c, matchPct, score }) => {
@@ -247,6 +284,8 @@ export const search = async ({ q, lat, lng, overrides = {}, showAll = false, use
       distanceM: c.distanceM == null ? null : Math.round(c.distanceM),
       opening,
       matchPct,
+      likelyServes: Boolean(c.likelyServes),
+      photoUrl: (c.menuItemId ? covers.menuItems[c.menuItemId] : covers.places[c.placeId]) ?? null,
       score: Math.round(score * 1000) / 1000,
       reason: ranking.reasonFor(c, { opening, tagNames: matchedTags }),
     };

@@ -189,9 +189,11 @@ export const verifiedCountsByAdder = async () => {
 };
 
 // ---- Search / group candidates (search step 4, one SQL) ------------------------------
-// f: { lat, lng, radiusM, dishIds, maxPrice, diet, openNow, at, tagIds, vibeVector, limit }
+// f: { lat, lng, radiusM, dishIds, maxPrice, diet, openNow, at, tagIds, vibeVector, limit, likely }
 // With dishIds → one row per place: its best-rated menu item of those dishes.
 // Without → one row per place (place-level search, e.g. "cozy cafe to study").
+// likely (place-level only): { nameTerms, cuisineIds, excludePureVeg } → only places that probably
+// serve the dish (name contains a term, or a matching cuisine); name matches first.
 // Closed / deleted places never appear.
 export const findCandidates = async (f) => {
   const params = [];
@@ -253,13 +255,20 @@ export const findCandidates = async (f) => {
       LIMIT ${add(f.limit ?? 200)}`;
   } else {
     if (f.diet === 'veg') where.push(`p.diet_type IN ('pure_veg', 'both')`);
+    let nameMatch = 'NULL::boolean';
+    if (f.likely) {
+      nameMatch = `p.name ILIKE ANY(${add(f.likely.nameTerms.map((t) => `%${t}%`))}::text[])`;
+      where.push(`(${nameMatch} OR EXISTS (SELECT 1 FROM place_cuisines pc
+                     WHERE pc.place_id = p.id AND pc.cuisine_id = ANY(${add(f.likely.cuisineIds)}::bigint[])))`);
+      if (f.likely.excludePureVeg) where.push(`p.diet_type IS DISTINCT FROM 'pure_veg'`);
+    }
     sql = `
-      SELECT ${placeColumns}
+      SELECT ${placeColumns}, ${nameMatch} AS likely_name_match
       FROM places p
       JOIN areas a ON a.id = p.area_id
       LEFT JOIN place_stats ps ON ps.place_id = p.id
       WHERE ${where.join(' AND ')}
-      ORDER BY ps.avg_stars DESC NULLS LAST, distance_m NULLS LAST
+      ORDER BY ${f.likely ? 'likely_name_match DESC, ' : ''}ps.avg_stars DESC NULLS LAST, distance_m NULLS LAST
       LIMIT ${add(f.limit ?? 200)}`;
   }
   const { rows } = await pool.query(sql, params);

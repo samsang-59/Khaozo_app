@@ -104,6 +104,7 @@ export const openingText = (opening) => {
 // "Chicken Dum Biryani 4.6★ (80) · Spicy · ₹220 · 1.2 km · Open till 11 PM"
 export const reasonFor = (c, { opening, tagNames = [] } = {}) => {
   const bits = [];
+  if (c.likelyReason) bits.push(c.likelyReason);
   if (c.menuItemId) {
     const rating = c.ratingCount > 0 && c.avgStars != null ? ` ${c.avgStars.toFixed(1)}★ (${c.ratingCount})` : ' · new';
     bits.push(`${c.standardDishName}${rating}`);
